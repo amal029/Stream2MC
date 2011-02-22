@@ -112,7 +112,8 @@ public class createPArch{
             StringTokenizer token = new StringTokenizer(nodes.get(e),":");
             token.nextToken();
             String nodeNum = token.nextToken();
-            GXLNode node = new GXLNode(machineName+":"+"logicalProcessor:"+new StringTokenizer(nodeNum," ").nextToken());
+            GXLNode node = new GXLNode(machineName+":"+"logicalProcessor:"+
+				       new StringTokenizer(nodeNum," ").nextToken()+":CPU:"+pID.get(e)+":Core:"+cID.get(e));
             if(pID.size() > e && cID.size()>e)
                 node.setAttr("label",new GXLString(machineName+":"+"logicalProcessor:"+
 						   new StringTokenizer(nodeNum," ").nextToken()+"\\nCPU:"+pID.get(e)+"\\nCore:"+cID.get(e)));
@@ -121,7 +122,7 @@ public class createPArch{
         return list;
     }
     private static ArrayList<GXLEdge> makeEdges(ArrayList<GXLNode> nodes, ArrayList<Integer> pID, ArrayList<Integer>cID,
-						int[][]mem_access_times){
+						int[][]mem_access_times,int currMachine){
         /*
          * TODO:
          * 1.) Go through all the nodes and make edges for them
@@ -140,7 +141,8 @@ public class createPArch{
 				 (mem_access_times[pID.get(r).intValue()][pID.get(e).intValue()]+
 				  mem_access_times[pID.get(e).intValue()][pID.get(e).intValue()]))/2;
                 edge.setAttr("latency",new GXLInt(comm_time));
-                edge.setAttr("label",new GXLString(comm_time+""));
+                edge.setAttr("latency_file",new GXLString("Name:"+cFiles.get(currMachine)+":"+"Type:ini:Parser:org.IBM.iniParser"));
+                edge.setAttr("label",new GXLString("NUMA latency: "+(comm_time==-1?0:comm_time)+"\\nCore latency, check file: "+cFiles.get(currMachine)));
             }
         }
         return list;
@@ -155,7 +157,7 @@ public class createPArch{
 	c.) Finally, we look at the number of hyper threads within the each core
     **/
     @SuppressWarnings("unchecked")
-        private static GXLGraph completeMachineGraph(GXLGraph machine, String arg,String machineName){
+        private static GXLGraph completeMachineGraph(GXLGraph machine, String arg,String machineName,int currMachine){
 	StringBuffer procFileBuffer = readViaSSH(arg,"/proc/cpuinfo","/tmp/cpuinfo");
 	ArrayList<ArrayList> infoList = getInfo(procFileBuffer.toString());
 	ArrayList<String> logicalProcessors = infoList.get(0); //First is the set of logicalProcessors
@@ -185,7 +187,7 @@ public class createPArch{
 	    }
 	}
 	if((ret&0x0001)==1){
-	    System.out.println("Machine "+machineName+" is a multi-core processor, which is currently not supported");
+	    // System.out.println("Machine "+machineName+" is a multi-core processor, which is currently not supported");
 	}
 	for(int e=0;e<nodes.size();++e)
 	    machine.add(nodes.get(e));
@@ -196,31 +198,79 @@ public class createPArch{
 	 * that file will be a .ini file, just like the network
 	 * times
 	 */
-	ArrayList<GXLEdge> edges = makeEdges(nodes,pID,cID,mem_access_times);
+	ArrayList<GXLEdge> edges = makeEdges(nodes,pID,cID,mem_access_times,currMachine);
 	for(int e=0;e<edges.size();++e)
 	    machine.add(edges.get(e));
 	return machine;
     }
+    private static ArrayList<String> users=new ArrayList<String>();
+    private static ArrayList<String> machines=new ArrayList<String>();
+    private static ArrayList<String> nFiles=new ArrayList<String>();
+    private static ArrayList<String> cFiles=new ArrayList<String>();
+    private int getOOptions(String args[],int e)throws optionsException{
+	if(args[e].equals("-nlf") && users.size()<=1)
+	    throw new optionsException("Network file only valid when there are at least two machines");
+	else if(args[e].equals("-clf") && users.size()<1)
+	    throw new optionsException("Core latency file only valid when there is at least one user@machine");
+	if(args[e].equals("-nlf")){
+	    do{
+		++e;
+		if(args[e].equals("-clf")) break;
+		nFiles.add(args[e]);
+	    }while(e<args.length-1);
+	}
+	if(args[e].equals("-clf")){
+	    do{
+		++e;
+		if(args[e].equals("-nlf")) break;
+		cFiles.add(args[e]);
+	    }while(e<args.length-1);
+	}
+	return e;
+    }
+    private void getOptions(String args[]) throws optionsException{
+	if(args.length<1)
+	    throw new optionsException();
+	int e=0;
+	for(e=0;e<args.length;++e){
+	    if(!(args[e].equals("-nlf") || args[e].equals("-clf"))){
+		StringTokenizer token = new StringTokenizer(args[e],"@");
+		users.add(token.nextToken());
+		machines.add(token.nextToken());
+	    }
+	    if(args[e].equals("-clf")){e=getOOptions(args,e);}
+	    if(args[e].equals("-nlf")){e=getOOptions(args,e);}
+	}
+	if(users.size()<2);
+	else if(users.size()==nFiles.size() && nFiles.size()==machines.size());
+	else throw new optionsException("The -nlf option is incorrect");
+	if(users.size()==cFiles.size());
+	else throw new optionsException("The -clf option is incorrect");
+    }
+    private static void showUsage(){
+	System.out.println("Usage: createPArch user1@machine-name1 user2@machine-name2 ....\n"+
+			   "-nlf <absolute path to network latency .ini files between machine1, machine2, .... separated by space>\n"+
+			   "-clf <absolute path to core latency .ini files between cores on machine1, machine2, ..... separated by space>");
+    }
     public static void main(String args[]){
-        if(args.length < 1)
-            System.out.println("Usage: createPArch <user1@machine-name1 user2@machine-name2 ....>");
+	try{
+	    new createPArch().getOptions(args);//This is so stupid
+	}catch(optionsException e){System.out.println("\n"+e.toString()+"\n");showUsage();System.exit(1);}
         try{
             //Make the top-level single gxl graph and node
             GXLDocument topDoc = new GXLDocument();
             GXLGraph topGraph = new GXLGraph("topGraph");
             topGraph.setEdgeMode("directed");
             topGraph.setEdgeIDs(true);
-            GXLNode topNode = new GXLNode("topNode");
+            GXLNode topNode = new GXLNode("cluster");
             topGraph.add(topNode);
-            GXLGraph topNodeg = new GXLGraph("pArch");
-            topNodeg.setAttr("label",new GXLString("pArch"));
+            GXLGraph topNodeg = new GXLGraph("clusterArch");
+            topNodeg.setAttr("label",new GXLString("clusterArch"));
             topNodeg.getAttr("label").setKind("graph");
             topNode.add(topNodeg);
             //Now make i args.length number of graphs
-            for(int i=0;i<args.length;++i){
-                StringTokenizer token = new StringTokenizer(args[i],"@");
-                token.nextToken();
-                String machineName = token.nextToken();
+            for(int i=0;i<users.size();++i){
+                String machineName = machines.get(i);
                 GXLNode node = new GXLNode("machine_"+machineName+"_node");
                 node.setAttr("label",new GXLString("machine_"+machineName+"_node"));
                 GXLGraph gr = new GXLGraph("machine_"+machineName+"_graph");
@@ -228,14 +278,71 @@ public class createPArch{
                 gr.getAttr("label").setKind("graph");
                 gr.setEdgeMode("directed");
                 gr.setEdgeIDs(true);
-                gr = completeMachineGraph(gr,args[i],machineName);
+                gr = completeMachineGraph(gr,new String(users.get(i)+"@"+machineName),machineName,i);
                 node.add(gr);
                 topNodeg.add(node);
             }
+	    new createPArch().makeNetworkConnections(topGraph); //This is again so stupid
             topDoc.getDocumentElement().add(topGraph);
             topDoc.write(new File("pArch.gxl"));
         }
         catch(IOException e){e.printStackTrace();}
         catch(NoSuchElementException es){es.printStackTrace();}
+        catch(Exception ep){ep.printStackTrace();}
+    }
+    @SuppressWarnings("unchecked")
+    private static GXLGraph makeNetworkConnections(GXLGraph topGraph)throws Exception{
+	//Now start making the network connections between machines
+	
+	//Get the cluster
+	GXLNode cluster = PArchParser.getClusterAt(topGraph,0);
+	//Get the cluster architecture
+	GXLGraph cArch = PArchParser.getClusterArch(cluster);
+
+	//How many machines are there in this architecture
+	//I know there is just one cluster that's why I am not 
+	//getting the cluster information
+	ArrayList<ArrayList>anodes = new ArrayList<ArrayList>(PArchParser.getMachinesCount(cArch));
+	for(int r=0;r<PArchParser.getMachinesCount(cArch);++r){
+	    GXLNode mnode = PArchParser.getMachineAt(cArch,r);
+	    GXLGraph mGraph = PArchParser.getMachineArch(mnode);
+
+	    //mGraph holds the architecture of the machine
+	    //This includes the nodes (logicalProcessors) and edges 
+	    //(connections between these processors)
+
+	    //Collect all the logicalProcessors in the mGraph
+	    ArrayList<GXLNode> nodes = new ArrayList<GXLNode>(PArchParser.getLogicalProcessorCount(mGraph));
+	    for(int e=0;e<PArchParser.getLogicalProcessorCount(mGraph);++e)
+		nodes.add(PArchParser.getLogicalProcessorAt(mGraph,e));
+	    anodes.add(nodes);
+	}
+	//Now make the Edges and make the connections between nodes
+	ArrayList<GXLEdge> list = new ArrayList<GXLEdge>();
+	for(int r=0;r<anodes.size();++r){
+	    for(int e=0;e<anodes.size();++e){
+		if(r != e){
+		    ArrayList<GXLNode> n = anodes.get(r);
+		    ArrayList<GXLNode> m = anodes.get(e);
+		    for(int q=0;q<n.size();++q){
+			for(int w=0;w<m.size();++w){
+			    GXLEdge edge = new GXLEdge(n.get(q),m.get(w));
+			    edge.setAttr("network_latency_file",new GXLString("Name:"+nFiles.get(r)+":"+"Type:ini:Parser:org.IBM.iniParser"));
+			    edge.setAttr("label",new GXLString("Network latency, check file: "+nFiles.get(r)));
+			    list.add(edge);
+			}
+		    }
+		}
+	    }
+	}
+	System.out.println(list.size());
+	for(int w=0;w<list.size();++w)
+	    cArch.add(list.get(w));
+	return topGraph;
+    }
+    private class optionsException extends RuntimeException{
+	static final long serialVersionUID = 0;
+	public optionsException(){super();}
+	public optionsException(String t){super(t);}
     }
 }

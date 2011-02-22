@@ -1,15 +1,16 @@
-CC=javac
-CLASSPATH=.:../gxl-0.92/gxl.jar
-CFALGS=-Xlint
 SHELL=/bin/bash
-all: clean createPArch
+CC=javac
+CFALGS=-Xlint
+HN=`hostname`
 
-createPArch:
-	javac -cp $(CLASSPATH) $(CFALGS) ./org/IBM/createPArch.java
+all: clean compile
+
+compile:
+	javac -cp $(CLASSPATH) $(CFALGS) ./org/IBM/*.java
 
 run:
-	java -cp .:../gxl-0.92/gxl.jar org/IBM/createPArch amal029@localhost
-	gxl2dot pArch.gxl -o pArch.dot
+	java -cp $(CLASSPATH) org/IBM/createPArch avinash@escc3 avinash@escc4 -clf /home/avinash/tutu /home/avinash/tutu -nlf /home/avinash/tutu /home/avinash/tutu
+	gxl2dot pArch.gxl -o pArch$(HN).dot
 
 clean:
-	rm -rf org/IBM/*class *dot *gxl *~
+	rm -rf org/IBM/*class *dot *gxl *~ org/IBM/*~
