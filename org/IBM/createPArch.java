@@ -115,13 +115,13 @@ public class createPArch{
             GXLNode node = new GXLNode(machineName+":"+"logicalProcessor:"+new StringTokenizer(nodeNum," ").nextToken());
             if(pID.size() > e && cID.size()>e)
                 node.setAttr("label",new GXLString(machineName+":"+"logicalProcessor:"+
-                            new StringTokenizer(nodeNum," ").nextToken()+"\\nCPU:"+pID.get(e)+"\\nCore:"+cID.get(e)));
+						   new StringTokenizer(nodeNum," ").nextToken()+"\\nCPU:"+pID.get(e)+"\\nCore:"+cID.get(e)));
             list.add(node);
         }
         return list;
     }
     private static ArrayList<GXLEdge> makeEdges(ArrayList<GXLNode> nodes, ArrayList<Integer> pID, ArrayList<Integer>cID,
-            int[][]mem_access_times){
+						int[][]mem_access_times){
         /*
          * TODO:
          * 1.) Go through all the nodes and make edges for them
@@ -136,9 +136,9 @@ public class createPArch{
                 int comm_time = -1;
                 if(mem_access_times != null)
                     comm_time = ((mem_access_times[pID.get(r).intValue()][pID.get(r).intValue()]+
-                                mem_access_times[pID.get(e).intValue()][pID.get(r).intValue()])+
-                            (mem_access_times[pID.get(r).intValue()][pID.get(e).intValue()]+
-                             mem_access_times[pID.get(e).intValue()][pID.get(e).intValue()]))/2;
+				  mem_access_times[pID.get(e).intValue()][pID.get(r).intValue()])+
+				 (mem_access_times[pID.get(r).intValue()][pID.get(e).intValue()]+
+				  mem_access_times[pID.get(e).intValue()][pID.get(e).intValue()]))/2;
                 edge.setAttr("latency",new GXLInt(comm_time));
                 edge.setAttr("label",new GXLString(comm_time+""));
             }
@@ -146,61 +146,61 @@ public class createPArch{
         return list;
     }
     /***
-TODO:
-1.) We need to know the number of cores within this machine the graph is a 
-flat graph
-We have a look at it hierarchically:
-a.) Look at the number of CPUs in the machine
-b.) We look at the number of cores within each CPU
-c.) Finally, we look at the number of hyper threads within the each core
-     **/
+	TODO:
+	1.) We need to know the number of cores within this machine the graph is a 
+	flat graph
+	We have a look at it hierarchically:
+	a.) Look at the number of CPUs in the machine
+	b.) We look at the number of cores within each CPU
+	c.) Finally, we look at the number of hyper threads within the each core
+    **/
     @SuppressWarnings("unchecked")
         private static GXLGraph completeMachineGraph(GXLGraph machine, String arg,String machineName){
-            StringBuffer procFileBuffer = readViaSSH(arg,"/proc/cpuinfo","/tmp/cpuinfo");
-            ArrayList<ArrayList> infoList = getInfo(procFileBuffer.toString());
-            ArrayList<String> logicalProcessors = infoList.get(0); //First is the set of logicalProcessors
-            ArrayList<Integer> pID = infoList.get(1);
-            ArrayList<Integer> cID = infoList.get(2);
-            ArrayList<Integer> cores = infoList.get(3);
-            ArrayList<Integer> siblings = infoList.get(4);
-            ArrayList<GXLNode> nodes = makeProcessorNodes(logicalProcessors,machineName,pID,cID);
-            ArrayList<Integer> cpids = new ArrayList<Integer>(1);
-            int ret = isHtOrCoreOrNUMA(logicalProcessors, pID, cores, siblings,cpids);
-            int mem_access_times[][] = null;
-            if((ret&0x0001)==1){
-                mem_access_times = new int[cpids.get(0).intValue()][cpids.get(0).intValue()];
-                for(int r=0;r<cpids.get(0).intValue();++r){
-                    if(new File("/tmp/distance"+r).exists()){
-                        StringBuffer temp = readFile("/tmp/distance"+r);
-                        Scanner scan = new Scanner(temp.toString());
-                        while(scan.hasNextLine()){
-                            String stemp = scan.nextLine();
-                            StringTokenizer token = new StringTokenizer(stemp," ");
-                            for(int y=0;y<cpids.get(0).intValue();++y)
-                                mem_access_times[r][y] = new Integer(token.nextToken()).intValue();
-                        }
-                    }
-                    else
-                        throw new RuntimeException("I am confused: Don't know if machine "+machineName+" is NUMA or not\n HELP!!!!");
-                }
-            }
-            if((ret&0x0001)==1){
-                System.out.println("Machine "+machineName+" is a multi-core processor, which is currently not supported");
-            }
-            for(int e=0;e<nodes.size();++e)
-                machine.add(nodes.get(e));
-            //Make edges between nodes
-            /**
-             * FIXME: Later on this will also take in a URI
-             * which will tell the time between cores
-             * that file will be a .ini file, just like the network
-             * times
-             */
-            ArrayList<GXLEdge> edges = makeEdges(nodes,pID,cID,mem_access_times);
-            for(int e=0;e<edges.size();++e)
-                machine.add(edges.get(e));
-            return machine;
-        }
+	StringBuffer procFileBuffer = readViaSSH(arg,"/proc/cpuinfo","/tmp/cpuinfo");
+	ArrayList<ArrayList> infoList = getInfo(procFileBuffer.toString());
+	ArrayList<String> logicalProcessors = infoList.get(0); //First is the set of logicalProcessors
+	ArrayList<Integer> pID = infoList.get(1);
+	ArrayList<Integer> cID = infoList.get(2);
+	ArrayList<Integer> cores = infoList.get(3);
+	ArrayList<Integer> siblings = infoList.get(4);
+	ArrayList<GXLNode> nodes = makeProcessorNodes(logicalProcessors,machineName,pID,cID);
+	ArrayList<Integer> cpids = new ArrayList<Integer>(1);
+	int ret = isHtOrCoreOrNUMA(logicalProcessors, pID, cores, siblings,cpids);
+	int mem_access_times[][] = null;
+	if((ret&0x0001)==1){
+	    mem_access_times = new int[cpids.get(0).intValue()][cpids.get(0).intValue()];
+	    for(int r=0;r<cpids.get(0).intValue();++r){
+		if(new File("/tmp/distance"+r).exists()){
+		    StringBuffer temp = readFile("/tmp/distance"+r);
+		    Scanner scan = new Scanner(temp.toString());
+		    while(scan.hasNextLine()){
+			String stemp = scan.nextLine();
+			StringTokenizer token = new StringTokenizer(stemp," ");
+			for(int y=0;y<cpids.get(0).intValue();++y)
+			    mem_access_times[r][y] = new Integer(token.nextToken()).intValue();
+		    }
+		}
+		else
+		    throw new RuntimeException("I am confused: Don't know if machine "+machineName+" is NUMA or not\n HELP!!!!");
+	    }
+	}
+	if((ret&0x0001)==1){
+	    System.out.println("Machine "+machineName+" is a multi-core processor, which is currently not supported");
+	}
+	for(int e=0;e<nodes.size();++e)
+	    machine.add(nodes.get(e));
+	//Make edges between nodes
+	/**
+	 * FIXME: Later on this will also take in a URI
+	 * which will tell the time between cores
+	 * that file will be a .ini file, just like the network
+	 * times
+	 */
+	ArrayList<GXLEdge> edges = makeEdges(nodes,pID,cID,mem_access_times);
+	for(int e=0;e<edges.size();++e)
+	    machine.add(edges.get(e));
+	return machine;
+    }
     public static void main(String args[]){
         if(args.length < 1)
             System.out.println("Usage: createPArch <user1@machine-name1 user2@machine-name2 ....>");
