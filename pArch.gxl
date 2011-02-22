@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gxl SYSTEM "http://www.gupro.de/GXL/gxl-1.0.dtd">
+<gxl>
+	<graph edgeids="true" edgemode="directed" id="topGraph">
+		<node id="topNode">
+			<graph id="pArch">
+				<attr kind="graph" name="label">
+					<string>pArch</string>
+				</attr>
+				<node id="machine_localhost_node">
+					<attr name="label">
+						<string>machine_localhost_node</string>
+					</attr>
+					<graph edgeids="true" edgemode="directed" id="machine_localhost_graph">
+						<attr kind="graph" name="label">
+							<string>machine_localhost_graph</string>
+						</attr>
+						<node id="localhost:logicalProcessor:0">
+							<attr name="label">
+								<string>localhost:logicalProcessor:0\nCPU:0\nCore:0</string>
+							</attr>
+						</node>
+						<node id="localhost:logicalProcessor:1">
+							<attr name="label">
+								<string>localhost:logicalProcessor:1\nCPU:0\nCore:1</string>
+							</attr>
+						</node>
+						<edge from="localhost:logicalProcessor:0" to="localhost:logicalProcessor:0">
+							<attr name="latency">
+								<int>-1</int>
+							</attr>
+							<attr name="label">
+								<string>-1</string>
+							</attr>
+						</edge>
+						<edge from="localhost:logicalProcessor:0" to="localhost:logicalProcessor:1">
+							<attr name="latency">
+								<int>-1</int>
+							</attr>
+							<attr name="label">
+								<string>-1</string>
+							</attr>
+						</edge>
+						<edge from="localhost:logicalProcessor:1" to="localhost:logicalProcessor:0">
+							<attr name="latency">
+								<int>-1</int>
+							</attr>
+							<attr name="label">
+								<string>-1</string>
+							</attr>
+						</edge>
+						<edge from="localhost:logicalProcessor:1" to="localhost:logicalProcessor:1">
+							<attr name="latency">
+								<int>-1</int>
+							</attr>
+							<attr name="label">
+								<string>-1</string>
+							</attr>
+						</edge>
+					</graph>
+				</node>
+			</graph>
+		</node>
+	</graph>
+</gxl>
