@@ -65,7 +65,7 @@ public class createPArch{
             }
         }
         cpids.add(0,new Integer(cpid));
-        if(cpid > 1)ret = 0x1; //It is NUMA, i.e., it has multiple CPUs will have to look at /sys/devices/system/node
+        if(cpid >= 1 && new File(System.getenv("HOME")+"/.distance0").exists())ret = 0x1; 
         if(ccores>cpid)ret|=0x2;//It is multiple cores within a CPU
         if(HT)ret |= 0x4;//It is Hyper threaded
         return ret;
@@ -158,7 +158,7 @@ public class createPArch{
     **/
     @SuppressWarnings("unchecked")
         private static GXLGraph completeMachineGraph(GXLGraph machine, String arg,String machineName,int currMachine){
-	StringBuffer procFileBuffer = readViaSSH(arg,"/proc/cpuinfo","/tmp/cpuinfo");
+	StringBuffer procFileBuffer = readViaSSH(arg,"/proc/cpuinfo",System.getenv("HOME")+"/.cpuinfo");
 	ArrayList<ArrayList> infoList = getInfo(procFileBuffer.toString());
 	ArrayList<String> logicalProcessors = infoList.get(0); //First is the set of logicalProcessors
 	ArrayList<Integer> pID = infoList.get(1);
@@ -172,8 +172,8 @@ public class createPArch{
 	if((ret&0x0001)==1){
 	    mem_access_times = new int[cpids.get(0).intValue()][cpids.get(0).intValue()];
 	    for(int r=0;r<cpids.get(0).intValue();++r){
-		if(new File("/tmp/distance"+r).exists()){
-		    StringBuffer temp = readFile("/tmp/distance"+r);
+		if(new File(System.getenv("HOME")+"/.distance"+r).exists()){
+		    StringBuffer temp = readFile(System.getenv("HOME")+"/.distance"+r);
 		    Scanner scan = new Scanner(temp.toString());
 		    while(scan.hasNextLine()){
 			String stemp = scan.nextLine();
@@ -196,7 +196,7 @@ public class createPArch{
 	 * FIXME: Later on this will also take in a URI
 	 * which will tell the time between cores
 	 * that file will be a .ini file, just like the network
-	 * times
+	 * times--->DONE
 	 */
 	ArrayList<GXLEdge> edges = makeEdges(nodes,pID,cID,mem_access_times,currMachine);
 	for(int e=0;e<edges.size();++e)
@@ -291,7 +291,7 @@ public class createPArch{
         catch(Exception ep){ep.printStackTrace();}
     }
     @SuppressWarnings("unchecked")
-    private static GXLGraph makeNetworkConnections(GXLGraph topGraph)throws Exception{
+	private static GXLGraph makeNetworkConnections(GXLGraph topGraph)throws Exception{
 	//Now start making the network connections between machines
 	
 	//Get the cluster
@@ -335,7 +335,6 @@ public class createPArch{
 		}
 	    }
 	}
-	System.out.println(list.size());
 	for(int w=0;w<list.size();++w)
 	    cArch.add(list.get(w));
 	return topGraph;
