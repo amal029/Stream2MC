@@ -11,6 +11,7 @@ public class Actor extends GXLNode{
     private boolean visit = false;
     public boolean ifVisited(){return visit;}
     public void setVisited(boolean v){visit=v;}
+    public void setVisited(){setVisited(true);}
     /**
       This adds the guard labels in the form L1,L2,L3..., which is
       basically a string, these should be converted to integers when
@@ -62,12 +63,16 @@ public class Actor extends GXLNode{
 	    this.setAttr("updateLabels",new GXLString(currLabels));
 	}
     }
+    protected Stack<Actor> splitStack = new Stack<Actor>();
+    protected Stack<Integer> splitIndex = new Stack<Integer>();
     public boolean getIsMergeNode(){
-	if(((GXLString)this.getAttr("mergeNode").getValue()).getValue().equals("true")) return true;
+	if(this.getAttr("mergeNode") == null ) return false;
+	else if(((GXLString)this.getAttr("mergeNode").getValue()).getValue().equals("true")) return true;
 	else return false;
     }
     public boolean getIsSplitNode(){
-	if(((GXLString)this.getAttr("splitNode").getValue()).getValue().equals("true")) return true;
+	if(this.getAttr("splitNode") == null) return false;
+	else if(((GXLString)this.getAttr("splitNode").getValue()).getValue().equals("true")) return true;
 	else return false;
     }
     public void setIsMergeNode(boolean value){
@@ -75,6 +80,28 @@ public class Actor extends GXLNode{
     }
     public void setIsSplitNode(boolean value){
 	this.setAttr("splitNode",new GXLString(value+""));
+    }
+    protected void setSplitNode(String val){
+	this.setAttr("splitNode",new GXLString(val));
+    }
+    protected void setMergeNode(String val){
+	this.setAttr("mergeNode",new GXLString(val));
+    }
+    protected String getMergeNode(){
+	if(this.getAttr("mergeNode") == null) return null;
+	else return ((GXLString)this.getAttr("mergeNode").getValue()).getValue();
+    }
+    protected String getSplitNode(){
+	if(this.getAttr("splitNode") == null) return null;
+	else return ((GXLString)this.getAttr("splitNode").getValue()).getValue();
+    }
+    //If this is not called, this attribute will always be "null"
+    protected void setStructureLabelAndIndex(String val){
+	this.setAttr("strucutureLabelAndIndex",new GXLString(val));
+    }
+    protected String getStructureLabelAndIndex(){
+	if(this.getAttr("strucutureLabelAndIndex") == null) return null;
+	else return ((GXLString)this.getAttr("strucutureLabelAndIndex").getValue()).getValue();
     }
     public Actor(GXLNode n){
 	super(n.getID());

@@ -40,3 +40,7 @@ stage1: compile
 
 stage2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2 ../sample_stream-graph2.gxl
+
+stage3: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3 \
+	../sample_stream-graph2.gxl
