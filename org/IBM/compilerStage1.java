@@ -168,7 +168,7 @@ public class compilerStage1 implements compilerStage{
     		streamGraph sGraph = graphs.get(args[e]);
     		//You have the streamGraph in hand
 		//Do a DFT and check the values of the actors
-		System.out.println(sGraph.getActorCount());
+		// System.out.println(sGraph.getActorCount());
 
 		//Mark all the mergeNodes
 		markMergeAndSplitNodes(((Actor)sGraph.getSourceNode()));
@@ -176,14 +176,14 @@ public class compilerStage1 implements compilerStage{
 		//now add guards and updates
 		addGuardsAndUpdates(((Actor)sGraph.getSourceNode()));
 		clearVisited(((Actor)sGraph.getSourceNode()));
-		sGraph.simpleDFT(((Actor)sGraph.getSourceNode()),
-				 new  applyFunctionsToStream(){
-				     public void applyFunction(Actor actor){
-					 System.out.println(actor.getID()+"\n Guard Labels: "+actor.getGuardlabels()+"\n Update Labels: "+actor.getUpdateLabels());
+		// sGraph.simpleDFT(((Actor)sGraph.getSourceNode()),
+		// 		 new  applyFunctionsToStream(){
+		// 		     public void applyFunction(Actor actor){
+		// 			 System.out.println(actor.getID()+"\n Guard Labels: "+actor.getGuardLabels()+"\n Update Labels: "+actor.getUpdateLabels());
 
-				     }
-				 });
-		clearVisited(((Actor)sGraph.getSourceNode()));
+		// 		     }
+		// 		 });
+		// clearVisited(((Actor)sGraph.getSourceNode()));
 
 		//Calling compiler stae 1B
 		//Make the structure labels and check that the graph is actually structured.
@@ -191,13 +191,13 @@ public class compilerStage1 implements compilerStage{
 		Stack<Integer> index = new Stack<Integer>();
 		checkStructureAndMarkNodes(((Actor)sGraph.getSourceNode()),stack,index);
 		//Print stuff out to see what exactly happened
-		sGraph.simpleDFT(((Actor)sGraph.getSourceNode()),
-				 new  applyFunctionsToStream(){
-				     public void applyFunction(Actor actor){
-					 System.out.println(actor.getID()+"\n Structure Labels: "+
-							    actor.getStructureLabelAndIndex());
-				     }
-				 });
+		// sGraph.simpleDFT(((Actor)sGraph.getSourceNode()),
+		// 		 new  applyFunctionsToStream(){
+		// 		     public void applyFunction(Actor actor){
+		// 			 System.out.println(actor.getID()+"\n Structure Labels: "+
+		// 					    actor.getStructureLabelAndIndex());
+		// 		     }
+		// 		 });
 		clearVisited(((Actor)sGraph.getSourceNode()));
 		//Write the file out onto the disk for stage2 processing
 		File f = new File(args[e]);

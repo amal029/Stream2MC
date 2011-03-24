@@ -10,7 +10,7 @@ import org.xml.sax.*;
 
 public class compilerStage2 implements compilerStage{
     public compilerStage2 () {}
-    private void clearVisited(Actor sNode){
+    private static void clearVisited(Actor sNode){
 	sNode.setVisited(false);
 	for(int e=0;e<sNode.getConnectionCount();++e){
 	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
@@ -33,27 +33,36 @@ public class compilerStage2 implements compilerStage{
 
        @bug This is a very very expensive algoritm
      */
-    private void makeParallelEdge(Actor sNode, Actor targetNode,streamGraph sGraph){
+    private static void makeParallelEdge(Actor sNode, Actor targetNode,streamGraph sGraph){
 	if(sNode.ifVisited()) return;
 	if(sNode.getStructureLabelAndIndex()!=null){
 	    String [] sLabels = sNode.getStructureLabelAndIndex().split(":");
 	    String [] tLabels = targetNode.getStructureLabelAndIndex().split(":");
 	    boolean doit =true;
-	    for(int e=0;e<tLabels.length;++e){
-		for(int t=0;t<sLabels.length;++t){
-		    if(tLabels[e].equals(sLabels[t])){
-			doit = false;
-			break;
+	    int count=0;
+	    if(tLabels.length != sLabels.length){
+		for(int e=0;e<tLabels.length;++e){
+		    for(int t=0;t<sLabels.length;++t){
+			if(tLabels[e].equals(sLabels[t]))
+			    {doit=false; break;}
 		    }
 		}
 	    }
+	    else{
+		for(int e=0;e<tLabels.length;++e){
+		    if(tLabels[e].equals(sLabels[e]))
+			{++count;}
+		}
+		if(count == tLabels.length) doit=false;
+	    }
 	    if(doit){
+		//If you have n19-->n13, then n13-->n19 is not needed.
 		//Don't make round about edges, because two systems
 		//running in parallel have equivalent runtime
 		/**@bug Need to prove this formally in the paper*/
 		for(int w=0;w<targetNode.getConnectionCount();++w){
 		    if(targetNode.getConnectionAt(w).getDirection().equals(GXL.OUT)){
-			GXLEdge le = (GXLEdge)sNode.getConnectionAt(w).getLocalConnection();
+			GXLEdge le = (GXLEdge)targetNode.getConnectionAt(w).getLocalConnection();
 			if(le.getAttr("parallelEdge") != null){
 			    if(le.getSource().equals(sNode)){
 				doit=false;

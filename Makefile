@@ -4,20 +4,22 @@ CR=java
 CFALGS=-Xlint -g
 HN=`hostname`
 
-all: clean compile
+all: model
 
 compile:
 	$(CC) -cp $(CLASSPATH) $(CFALGS) ./org/IBM/*.java
 
-run:
+arch:
 	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/clf1 /home/amal029/clf2 -nlf /home/amal029/nlf1 /home/amal029/nlf2
 	gxl2dot pArch.gxl -o pArch$(HN).dot
 
 clean:
 	rm -rf org/IBM/*class *dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/
 
-test_ini:
+testini:
 	$(CR) -cp $(CLASSPATH) org/IBM/iniParser core.ini 
+
+model: stage4
 
 # The compiler gets invoked in stages. So, in the below two examples,
 # you can stop after some stage. Normally, you will always require the
@@ -39,8 +41,15 @@ stage1: compile
 # that are produced in the output directory)
 
 stage2: compile
-	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2 ../sample_stream-graph2.gxl
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2 \
+	../sample_stream-graph2.gxl
 
+# Third stage of the compiler needs stage-2 and stage-1
 stage3: compile
-	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3 \
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage3,org.IBM.compilerStage2 \
+	../sample_stream-graph2.gxl
+
+stage4: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 \
 	../sample_stream-graph2.gxl

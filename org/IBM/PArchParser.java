@@ -16,8 +16,24 @@ public final class PArchParser{
     public static GXLGraph getClusterArch(GXLNode node){
 	return node.getGraphAt(0);
     }
+    //This this needs this loop, because the network edges are attached
+    //to the cArch rather than the mArch
     public static int getMachinesCount(GXLGraph cArch){
-	return cArch.getGraphElementCount();
+	int count = 0;
+	for(int y=0;y<cArch.getGraphElementCount();++y){
+	    if(cArch.getGraphElementAt(y) instanceof GXLNode) ++count;
+	}
+	return count;
+    }
+    public static GXLEdge getNetworkConnectionAt(GXLGraph cArch, int i){
+	return (GXLEdge)cArch.getGraphElementAt(getMachinesCount(cArch)+i);
+    }
+    public static int getNetworkConnectionCount(GXLGraph cArch){
+	int count =0;
+	for(int y=0;y<cArch.getGraphElementCount();++y){
+	    if(cArch.getGraphElementAt(y) instanceof GXLEdge) ++count;
+	}
+	return count;
     }
     public static GXLNode getMachineAt(GXLGraph graph, int i){
 	return (GXLNode)graph.getGraphElementAt(i);

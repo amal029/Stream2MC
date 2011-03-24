@@ -164,6 +164,10 @@ public class streamGraph extends GXLGraph{
 	    }
 	    else if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
 		//Now do stuff
+		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+		if(le.getAttr("parallelEdge")!=null){
+		    add(new pRelations(le)); continue;
+		}
 		if(((GXLString)sNode.getAttr("Visit").getValue()).getValue().equals("false")){
 		    if(sNode.getGraphCount()==0){
 			++actorCount;
@@ -178,13 +182,13 @@ public class streamGraph extends GXLGraph{
 			// System.out.println(sNode.getID());
 		    }
 		}
-		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
 		if(((GXLString)((GXLNode)le.getSource()).getAttr("Visit").getValue()).getValue().equals("false") || 
 		   ((GXLString)((GXLNode)le.getTarget()).getAttr("Visit").getValue()).getValue().equals("false")){
 		    if(((GXLNode)le.getSource()).getGraphCount()==0 && ((GXLNode)le.getTarget()).getGraphCount()==0)
 			add(new pRelations(le));
 		}
 		sNode.setAttr("Visit",new GXLString("true"));
+		//We need this because of the parallel edge connections in stage-3/2.
 		GXLNode node = (GXLNode)le.getTarget();
 		//You have to have this here
 		generateStreamGraph(node);
