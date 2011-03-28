@@ -3,18 +3,22 @@ CC=javac
 CR=java
 CFALGS=-Xlint -g
 HN=`hostname`
+TOPLEVEL=./org/IBM
+DEVICEFILES=$(TOPLEVEL)/device
+SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java
 
 all: model
 
 compile:
-	$(CC) -cp $(CLASSPATH) $(CFALGS) ./org/IBM/*.java
+	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
 	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/clf1 /home/amal029/clf2 -nlf /home/amal029/nlf1 /home/amal029/nlf2
 	gxl2dot pArch.gxl -o pArch$(HN).dot
 
 clean:
-	rm -rf org/IBM/*class *dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/
+	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
+	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/
 
 testini:
 	$(CR) -cp $(CLASSPATH) org/IBM/iniParser core.ini 

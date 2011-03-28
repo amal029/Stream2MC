@@ -4,6 +4,7 @@ import net.sourceforge.gxl.*;
 import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
+import org.IBM.device.StreamIT.*;
 /**
  * @author Avinash Malik (avimalik@ie.ibm.com)
  * @date 2011-03-09
@@ -83,58 +84,6 @@ public class streamGraph extends GXLGraph{
 	}
 	return sNode;
     }
-    // private int gLabel = 0;
-    // public void markMergeNodes() throws RuntimeException{
-    // 	if(getSourceNode().getDocument().getDocumentElement().getGraphCount()>1)
-    // 	    throw new RuntimeException("More than a single Graph in this file");
-    // 	GXLGraph g = getSourceNode().getDocument().getDocumentElement().getGraphAt(0);
-    // 	int totalElements = g.getGraphElementCount();
-    // 	ArrayList<GXLEdge> edges = new ArrayList<GXLEdge>();
-    // 	for(int e=0;e<totalElements;++e){
-    // 	    GXLElement el = g.getGraphElementAt(e);
-    // 	    if(el instanceof GXLEdge)
-    // 		edges.add((GXLEdge)el);
-    // 	}
-    // 	for(int e=0;e<edges.size()-1;++e){
-    // 	    GXLNode pMergeNode = (GXLNode)edges.get(e).getTarget();
-    // 	    for(int r=0;r<edges.size();++r){
-    // 		if(r==e) continue;
-    // 		GXLNode mergeNode = (GXLNode)edges.get(r).getTarget();
-    // 		if(pMergeNode.equals(mergeNode)){ ((Actor)pMergeNode).setIsMergeNode(true); break;}
-    // 	    }
-    // 	}
-    // }
-    // protected void addGuardsAndUpdates(Actor sNode){
-    // 	if(sNode.ifVisited() && sNode.getIsMergeNode()){
-    // 	    //If this this is already visited, I still need to check,
-    // 	    //whether this is a merge node??
-    // 	    sNode.setGuardLabels("L"+(++gLabel));
-    // 	    //You have to return back, of course.
-    // 	    return;
-    // 	}
-    // 	else if(sNode.ifVisited()) return;
-    // 	//If it is DS or DT, nothing
-    // 	if(sNode.getID().equals("dummyTerminalNode") || sNode.getID().equals("dummyStartNode")) ;
-    // 	//If it is something else then start playing with it
-    // 	else{
-    // 	    sNode.setGuardLabels("L"+(++gLabel));
-    // 	}
-    // 	sNode.setVisited(true); //I have visited this node already.
-    // 	//This is a recursive function.
-    // 	for(int e=0;e<sNode.getConnectionCount();++e){
-    // 	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
-    // 		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
-    // 		Actor node = (Actor)le.getTarget();
-    // 		if(!node.getID().equals("dummyTerminalNode")){
-    // 		    //Add the update label to this sNode for the node
-    // 		    //guard
-    // 		    if(!sNode.getID().equals("dummyStartNode"))
-    // 			sNode.setUpdateLabels("L"+(gLabel+1));
-    // 		}
-    // 		addGuardsAndUpdates(node);
-    // 	    }
-    // 	}
-    // }
     private void generateStreamGraph(GXLNode sNode){
 	if(((GXLString)sNode.getAttr("Visit").getValue()).getValue().equals("true")) return;
 	for(int e=0;e<sNode.getConnectionCount();++e){
@@ -153,13 +102,6 @@ public class streamGraph extends GXLGraph{
 			}
 		    }
 		}
-		//This is never needed, because there is no node going anywhere from terminalNode.
-		// GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
-		// if(((GXLString)((GXLNode)le.getSource()).getAttr("Visit").getValue()).getValue().equals("false") || 
-		//    ((GXLString)((GXLNode)le.getTarget()).getAttr("Visit").getValue()).getValue().equals("false")){
-		//     if(((GXLNode)le.getSource()).getGraphCount()==0 && ((GXLNode)le.getTarget()).getGraphCount()==0)
-		// 	add(new pRelations(le));
-		// }
 		sNode.setAttr("Visit",new GXLString("true"));
 	    }
 	    else if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
@@ -249,6 +191,30 @@ public class streamGraph extends GXLGraph{
     public streamGraph(GXLGraph g, boolean insertDummyNodes) throws Exception{
 	super(g.getID());
 	GXLNode sNode = null;
+	//Need to call the pre-processor here
+	/*
+	  TODO
+
+	  1.) Add rep to the gxl nodes (execution nodes) looking at
+	  work-after-partition.txt file
+
+	  2.) Add unit_time_x86 and total_time_x86 to execution and
+	  computation nodes For execution nodes: unit_time_x86 =
+	  unit_work total_time_x86 = total_work (total_work =
+	  unit_work*rep).
+
+	  3.) Insert communication actor nodes in the graph.
+
+	  a.) Every execution actor is followed by a communication
+	  actor.
+
+	  b.) Every communication actor has a "rate" attribute, which
+	  the execution actor should never have. The rate equal to the
+	  number of bytes produced for every invocation of the source
+	  execution actor. Rate is also obtained from the
+	  work-after-partition.txt file.
+	 */
+	g = insertDummyNodes? new StreamITParser().parse(g,insertDummyNodes): g;
 	sNode  = searchAndInsertDummyNodes(g,insertDummyNodes);
 	if(insertDummyNodes){ 
 	    simpleDFT(sNode,new applyFunctions(){
