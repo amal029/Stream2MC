@@ -40,20 +40,25 @@ public class compilerStage2 implements compilerStage{
 	    String [] tLabels = targetNode.getStructureLabelAndIndex().split(":");
 	    boolean doit =true;
 	    int count=0;
-	    if(tLabels.length != sLabels.length){
-		for(int e=0;e<tLabels.length;++e){
-		    for(int t=0;t<sLabels.length;++t){
-			if(tLabels[e].equals(sLabels[t]))
-			    {doit=false; break;}
-		    }
+	    // if(tLabels.length != sLabels.length){
+	    for(int e=tLabels.length-1;e>=0;--e){
+		for(int t=sLabels.length-1;t>=0;--t){
+		    if(tLabels[e].equals(sLabels[t]))
+			{doit=false; break;}
 		}
 	    }
-	    else{
-		for(int e=0;e<tLabels.length;++e){
-		    if(tLabels[e].equals(sLabels[e]))
-			{++count;}
-		}
-		if(count == tLabels.length) doit=false;
+	    //Special case, all are within the same node
+	    String sLab = sLabels[0].replace('[',':');
+	    sLab = sLab.replace(']',':');
+	    sLabels = sLab.split(":");
+	    String tLab = tLabels[0].replace('[',':');
+	    tLab = tLab.replace(']',':');
+	    tLabels = tLab.split(":");
+	    if(sLabels[0].equals(tLabels[0])){
+		//now check the index
+		if(sLabels[1].equals(tLabels[1]))
+		    doit=false;
+		else doit =true;
 	    }
 	    if(doit){
 		//If you have n19-->n13, then n13-->n19 is not needed.

@@ -7,6 +7,9 @@ TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
 SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java
 
+# COMPILE_FILES=../sample_stream-graph2.gxl
+COMPILE_FILES=../work-after-partition.gxl
+
 all: model
 
 compile:
@@ -35,7 +38,7 @@ model: stage4
 
 # One stage pass
 stage1: compile
-	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -Dstagefile=org.IBM.compilerStage1 ../sample_stream-graph2.gxl
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -Dstagefile=org.IBM.compilerStage1 $(COMPILE_FILES)
 
 # Two stage compiler pass, stage-2 needs stage-1
 
@@ -46,14 +49,14 @@ stage1: compile
 
 stage2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2 \
-	../sample_stream-graph2.gxl
+	$(COMPILE_FILES)
 
 # Third stage of the compiler needs stage-2 and stage-1
 stage3: compile
-	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage3,org.IBM.compilerStage2 \
-	../sample_stream-graph2.gxl
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel -DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3 \
+	$(COMPILE_FILES)
 
 stage4: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 \
-	../sample_stream-graph2.gxl
+	$(COMPILE_FILES)

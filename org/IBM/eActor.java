@@ -173,9 +173,13 @@ public class eActor extends Actor{
 	ArrayList<ArrayList> finals = extractCompleteParallelism();
 	int count =0;
 	for(ArrayList i : finals){
+	    System.out.println("Building the parallel globals");
 	    buildParallelGlobal(gb,i,count);
+	    System.out.println("Finished building the parallel Globals");
 	    buildParallelTemplate(tb,i,count);
+	    System.out.println("Finished building the parallel Template");
 	    buildParallelSystem(sb,i,count);
+	    System.out.println("Finished building the parallel System");
 	    ++count;
 	}
     }

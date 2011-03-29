@@ -156,7 +156,7 @@ public class compilerStage1 implements compilerStage{
 		checkStructureAndMarkNodes(node,stack,index);
 	    }
 	}
-	//clearing split stack and split index
+	//clear split stack and split index
 	sNode.splitStack.clear(); sNode.splitIndex.clear();
     }
     public String[] applyMethod(String args[],String fNames[]){

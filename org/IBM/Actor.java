@@ -445,7 +445,7 @@ public class Actor extends GXLNode{
     }
     /**
        This is one of the most important algorithms in the whole
-       compiler.  It extract parallelism from the actor graph by looking
+       compiler.  It extracts parallelism from the actor graph by looking
        at the processor architecture. There is significant state space
        explosion.
        @author Avinash Malik
@@ -459,6 +459,7 @@ public class Actor extends GXLNode{
 	//Now make a DFT search building the list for parallel nodes
 	ArrayList<ArrayList> ret = new ArrayList<ArrayList>();
 	for(int w=0;w<guards.length;++w){
+	    System.out.println("Building the parallel arrayList for node "+getID()+" processor "+w);
 	    ArrayList<String> nIDAndProcessors= new ArrayList<String>();
 	    nIDAndProcessors.add(getID()+"_"+guards[w]);
 	    extract(this,nIDAndProcessors,false);

@@ -25,7 +25,7 @@ public class streamGraphParser{
 	    GXLGXL gxl = new GXLDocument(new File(args[e])).getDocumentElement();
 	    if(gxl.getGraphCount() > 1){throw new streamGraphException("File "+args[e]+" has more than one stream graph defined in it");}
 	    else
-		allGraphs.put(args[e],new streamGraph(gxl.getGraphAt(0),dummyNodesInsertion));
+		allGraphs.put(args[e],new streamGraph(gxl.getGraphAt(0),dummyNodesInsertion,args[e]));
 	}
 	return allGraphs;
     }

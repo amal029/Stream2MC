@@ -97,8 +97,8 @@ public class streamGraph extends GXLGraph{
 			else {
 			    eActor actor = new eActor(sNode);
 			    add(actor);
-			    if(actor.getID().equals("dummyStartNode")) this.sNode=actor;
-			    else if(actor.getID().equals("dummyTerminalNode")) this.tNode=actor;
+			    if(actor.getID().equals("dummyStartNode")){ this.sNode=actor;actor.setIsSplitNode(true);}
+			    else if(actor.getID().equals("dummyTerminalNode")){ this.tNode=actor;actor.setIsMergeNode(true);}
 			}
 		    }
 		}
@@ -117,8 +117,8 @@ public class streamGraph extends GXLGraph{
 			else {
 			    eActor actor = new eActor(sNode);
 			    add(actor);
-			    if(actor.getID().equals("dummyStartNode")) this.sNode=actor;
-			    else if(actor.getID().equals("dummyTerminalNode")) this.tNode=actor;
+			    if(actor.getID().equals("dummyStartNode")) {this.sNode=actor; actor.setIsSplitNode(true);}
+			    else if(actor.getID().equals("dummyTerminalNode")) {this.tNode=actor;actor.setIsMergeNode(true);}
 			}
 			//Say that I am done with this node.
 			// System.out.println(sNode.getID());
@@ -188,33 +188,11 @@ public class streamGraph extends GXLGraph{
 	    }
 	}
     }
-    public streamGraph(GXLGraph g, boolean insertDummyNodes) throws Exception{
+    public streamGraph(GXLGraph g, boolean insertDummyNodes, String fileName) throws Exception{
 	super(g.getID());
 	GXLNode sNode = null;
 	//Need to call the pre-processor here
-	/*
-	  TODO
-
-	  1.) Add rep to the gxl nodes (execution nodes) looking at
-	  work-after-partition.txt file
-
-	  2.) Add unit_time_x86 and total_time_x86 to execution and
-	  computation nodes For execution nodes: unit_time_x86 =
-	  unit_work total_time_x86 = total_work (total_work =
-	  unit_work*rep).
-
-	  3.) Insert communication actor nodes in the graph.
-
-	  a.) Every execution actor is followed by a communication
-	  actor.
-
-	  b.) Every communication actor has a "rate" attribute, which
-	  the execution actor should never have. The rate equal to the
-	  number of bytes produced for every invocation of the source
-	  execution actor. Rate is also obtained from the
-	  work-after-partition.txt file.
-	 */
-	g = insertDummyNodes? new StreamITParser().parse(g,insertDummyNodes): g;
+	g = insertDummyNodes? new StreamITParser().parse(g,fileName): g;
 	sNode  = searchAndInsertDummyNodes(g,insertDummyNodes);
 	if(insertDummyNodes){ 
 	    simpleDFT(sNode,new applyFunctions(){
