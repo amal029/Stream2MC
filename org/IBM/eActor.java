@@ -52,7 +52,7 @@ public class eActor extends Actor{
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));
     }
-    protected void buildGlobals(StringBuffer buf)throws Exception{
+    protected void buildGlobals(StringBuilder buf)throws Exception{
 	//Special case of start node
 	if(getID().equals("dummyStartNode")){
 	    buf.append("<!-- Making the global declarations -->\n");
@@ -61,6 +61,7 @@ public class eActor extends Actor{
 	    buf.append("//Guard for node "+getID()+"\n");
 	    buf.append("bool "+((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue()+"=1;\n");
 	    String updates [] = ((GXLString)getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
+	    //Get the cost of doing this node.
 	    for(int e=0;e<updates.length;++e)
 		Actor.globalCostDeclBuild(buf,getID(),"0"); //Putting in the cost variable for this node.
 	    Actor.countS=1;
@@ -82,8 +83,12 @@ public class eActor extends Actor{
 		    buf.append(";\n");
 		else buf.append(", ");
 	    }
-	    //FIXME Get the cost of this node's computation replace it with "0"
-	    Actor.globalCostDeclBuild(buf,getID(),"0"); //Putting in the
+	    String myCost = "0";
+	    if(getID().equals("dummyTerminalNode")) myCost="0";
+	    else if(getAttr("total_time_x86")==null && !getID().equals("dummyTerminalNode"))
+		throw new RuntimeException(getID()+" does not know how log it will take!!");
+	    else myCost=((GXLString)getAttr("total_time_x86").getValue()).getValue();
+	    Actor.globalCostDeclBuild(buf,getID(),myCost); //Putting in the
 							//cost variable
 							//for this node
 							//on this
@@ -92,7 +97,7 @@ public class eActor extends Actor{
 	Actor.countS =1;
     }
     //This is the final thing that is built
-    protected String buildSystem(StringBuffer buf)throws Exception{
+    protected String buildSystem(StringBuilder buf)throws Exception{
 	if(getID().equals("dummyStartNode")){
 	    buf.append("<!-- Start the system declaration, i.e., instantiating the states -->\n");
 	    buf.append("<system>\n");
@@ -111,7 +116,7 @@ public class eActor extends Actor{
     }
     //This one is easy to build, but it is hard for communication
     //actors.
-    protected void buildTemplate(StringBuffer buf)throws Exception{
+    protected void buildTemplate(StringBuilder buf)throws Exception{
 	String guards [] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
 	String updates [] = ((GXLString)getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
 	if(!getID().equals("dummyTerminalNode")){
@@ -162,7 +167,7 @@ public class eActor extends Actor{
 
     //This will never happen at the start ot end nodes
     @SuppressWarnings("unchecked")
-    protected void buildParallel (StringBuffer gb, StringBuffer tb, StringBuffer sb) throws Exception{
+    protected void buildParallel (StringBuilder gb, StringBuilder tb, StringBuilder sb) throws Exception{
 	/**
 	   @author Avinash Malik 
 
@@ -173,13 +178,13 @@ public class eActor extends Actor{
 	ArrayList<ArrayList> finals = extractCompleteParallelism();
 	int count =0;
 	for(ArrayList i : finals){
-	    System.out.println("Building the parallel globals");
+	    // System.out.println("Building the parallel globals");
 	    buildParallelGlobal(gb,i,count);
-	    System.out.println("Finished building the parallel Globals");
+	    // System.out.println("Finished building the parallel Globals");
 	    buildParallelTemplate(tb,i,count);
-	    System.out.println("Finished building the parallel Template");
+	    // System.out.println("Finished building the parallel Template");
 	    buildParallelSystem(sb,i,count);
-	    System.out.println("Finished building the parallel System");
+	    // System.out.println("Finished building the parallel System");
 	    ++count;
 	}
     }

@@ -101,7 +101,9 @@ public class compilerStage3 implements compilerStage{
 	    for(int e=0;e<args.length;++e){
     		streamGraph sGraph = graphs.get(args[e]);
 		//Stage-3(A)
+		System.out.print(".......");
 		allocProcessorGuardsAndUpdates(sGraph.getSourceNode());
+		System.out.print(".......");
 		//Write the file out onto the disk for stage3 processing
 		File f = new File(fNames[e]);
 		File dir = new File("./output");

@@ -119,7 +119,9 @@ public class compilerStage2 implements compilerStage{
 	    for(int e=0;e<args.length;++e){
     		streamGraph sGraph = graphs.get(args[e]);
 		//Make the parallel relation edges
+		System.out.print(".......");
 		makeParallelEdges(sGraph,sGraph.getSourceNode());
+		System.out.print(".......");
 		//Write the file out onto the disk for stage2 processing
 		File f = new File(fNames[e]);
 		File dir = new File("./output");

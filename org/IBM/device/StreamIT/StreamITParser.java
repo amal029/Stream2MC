@@ -38,6 +38,16 @@ public class StreamITParser {
 	    }
 	}
     }
+    private static int count =0;
+    private static String removePart(String s){
+	String v[] = s.split("_");
+	String ret = "";
+	for(int e=0;e<v.length-1;++e){
+	    ret += v[e];
+	    ret += e <v.length-2?"_":"";
+	}
+	return ret;
+    }
     public GXLGraph parse(GXLGraph g, String fileName) throws Exception{
 	//First parse the work-after-partition.txt file
 	if(map == null)
@@ -74,24 +84,36 @@ public class StreamITParser {
 	GXLGraph ret = new GXLGraph(gen.generateGraphID());
 
 	GXLEdge e = null;
-	String name = null;
+	String name = null, name2= null;
 	ArrayList<GXLNode> toRemoveSource = new ArrayList<GXLNode>();
 	ArrayList<GXLNode> toRemoveTarget = new ArrayList<GXLNode>();
 	ArrayList<GXLEdge> toRemoveEdge = new ArrayList<GXLEdge>();
+	ArrayList<GXLEdge> toRemoveEdgeSpecial = new ArrayList<GXLEdge>();
 	for(int r=0;r<edges.size();++r){
 	    boolean thereS =false, thereT=false;
-	    for(Iterator it = map.keySet().iterator(); it.hasNext();){
-		String fullName = ((String)it.next());
-		name = fullName.split(":")[0];
-		e = edges.get(r);
-		String sName = ((GXLString)((GXLNode)e.getSource()).getAttr("label").getValue()).getValue();
-		String tName = ((GXLString)((GXLNode)e.getTarget()).getAttr("label").getValue()).getValue();
-		if(sName.startsWith(name)){
-		    thereS = true; break;
+	    e = edges.get(r);
+	    String sNameO = ((GXLString)((GXLNode)e.getSource()).getAttr("label").getValue()).getValue();
+	    String tNameO = ((GXLString)((GXLNode)e.getTarget()).getAttr("label").getValue()).getValue();
+	    sNameO = sNameO.replace('\\',':');
+	    sNameO = removePart(sNameO.split(":")[0]);
+	    sNameO = sNameO+":rep";
+	    tNameO = tNameO.replace('\\',':');
+	    tNameO = removePart(tNameO.split(":")[0]);
+	    tNameO = tNameO+":rep";
+	    try{
+		if(map.get(sNameO)==null && map.get(tNameO)==null)
+		    throw new NullPointerException();
+		if(map.get(sNameO) != null){
+		    thereS = true;
+		    name = sNameO.split(":")[0];
 		}
-		else if(tName.startsWith(name)){
-		    thereT = true; break;
+		if(map.get(tNameO)!= null){
+		    thereT = true;
+		    name2=tNameO.split(":")[0];
 		}
+	    }
+	    catch(NullPointerException ne){
+		thereS= thereT = false;
 	    }
 	    if(!thereS && !thereT){
 		//This means this edge lies between a merge or split
@@ -106,9 +128,9 @@ public class StreamITParser {
 		target.setAttr("total_time_x86",new GXLString("0"));
 		toRemoveTarget.add(target);
 		toRemoveSource.add(source);
-		toRemoveEdge.add(e);
+		toRemoveEdgeSpecial.add(e);
 	    }
-	    else if(thereS){
+	    if(thereS){
 		//Then add the "rep", unit_time_x86, and total_time_x86
 		GXLNode source = (GXLNode)e.getSource();
 		source.setAttr("rep",new GXLString(map.get(name+":rep")));
@@ -121,15 +143,19 @@ public class StreamITParser {
 		target.remove(e);
 		e.remove(target);
 		//Add a communication node after source node
-		GXLNode commNode = new GXLNode(gen.generateID("node"));
+		GXLNode commNode = new GXLNode(gen.generateEdgeID());
+		commNode.setID(commNode.getID()+count); ++count;
 		GXLEdge edgeC1 = new GXLEdge(source,commNode);
 		GXLEdge edgeC2 = new GXLEdge(commNode,target);
+		edgeC1.setDirected(true);
+		edgeC2.setDirected(true);
 		ret.add(commNode);
 		ret.add(edgeC2);
 		ret.add(edgeC1);
 		//Set the commNode attributes
 		commNode.setAttr("rep",new GXLString("1"));
 		commNode.setAttr("rate",new GXLString(map.get(name+":out_bytes")));
+		commNode.setAttr("sourceActorRate",new GXLString(map.get(name+":rep")));
 		commNode.setAttr("work_x86",new GXLString("0"));
 		//Remove the edge from the edges arraylist
 		edges.remove(r);--r;
@@ -148,41 +174,46 @@ public class StreamITParser {
 		toRemoveSource.add(source);
 		toRemoveEdge.add(e);
 	    }
-	    else if(thereT){
+	    if(thereT){
 		GXLNode target = (GXLNode)e.getTarget();
-		target.setAttr("rep",new GXLString(map.get(name+":rep")));
-		target.setAttr("unit_time_x86",new GXLString(map.get(name+":unit_work")));
-		target.setAttr("total_time_x86",new GXLString(map.get(name+":total_work")));
-		//Get the source
-		GXLNode source = (GXLNode)e.getSource();
-		source.remove(e);
+		target.setAttr("rep",new GXLString(map.get(name2+":rep")));
+		target.setAttr("unit_time_x86",new GXLString(map.get(name2+":unit_work")));
+		target.setAttr("total_time_x86",new GXLString(map.get(name2+":total_work")));
 		target.remove(e);
-		e.remove(source);
 		e.remove(target);
-		//Add the new communication node above the target
-		GXLNode commNode = new GXLNode(gen.generateID("node"));
-		GXLEdge edgeC1 = new GXLEdge(source,commNode);
-		GXLEdge edgeC2 = new GXLEdge(commNode,target);
-		ret.add(commNode);
-		ret.add(edgeC2);
-		ret.add(edgeC1);
-		commNode.setAttr("rep",new GXLString("1"));
-		commNode.setAttr("rate",new GXLString(map.get(name+":in_bytes")));
-		commNode.setAttr("work_x86",new GXLString("0"));
-		edges.remove(r);--r;
-		//Finally, if the target is a split or join, then add
-		//the rep Attr to it
-		//Checking if source is split or join
-		String tName = ((GXLString)source.getAttr("label").getValue()).getValue();
-		tName = tName.replace('\\',':');
-		if(tName.split(":")[1].equals("nwork=null")){
-		    source.setAttr("rep",new GXLString("1"));
-		    source.setAttr("unit_time_x86",new GXLString("0"));
-		    source.setAttr("total_time_x86",new GXLString("0"));
+		if(!thereS){
+		    GXLNode source = (GXLNode)e.getSource();
+		    source.remove(e);
+		    e.remove(source);
+		    //Add the new communication node above the target
+		    GXLNode commNode = new GXLNode(gen.generateEdgeID());
+		    commNode.setID(commNode.getID()+count); ++count;
+		    GXLEdge edgeC1 = new GXLEdge(source,commNode);
+		    GXLEdge edgeC2 = new GXLEdge(commNode,target);
+		    edgeC1.setDirected(true);
+		    edgeC2.setDirected(true);
+		    ret.add(commNode);
+		    ret.add(edgeC2);
+		    ret.add(edgeC1);
+		    commNode.setAttr("rep",new GXLString("1"));
+		    commNode.setAttr("sourceActorRate",new GXLString(map.get(name+":rep")));
+		    commNode.setAttr("rate",new GXLString(map.get(name2+":in_bytes")));
+		    commNode.setAttr("work_x86",new GXLString("0"));
+		    edges.remove(r);--r;
+		    //Finally, if the target is a split or join, then add
+		    //the rep Attr to it
+		    //Checking if source is split or join
+		    String tName = ((GXLString)source.getAttr("label").getValue()).getValue();
+		    tName = tName.replace('\\',':');
+		    if(tName.split(":")[1].equals("nwork=null")){
+			source.setAttr("rep",new GXLString("1"));
+			source.setAttr("unit_time_x86",new GXLString("0"));
+			source.setAttr("total_time_x86",new GXLString("0"));
+		    }
+		    toRemoveTarget.add(target);
+		    toRemoveSource.add(source);
+		    toRemoveEdge.add(e);
 		}
-		toRemoveTarget.add(target);
-		toRemoveSource.add(source);
-		toRemoveEdge.add(e);
 	    }
 	}
 	for(GXLNode node: toRemoveSource){
@@ -197,13 +228,18 @@ public class StreamITParser {
 	    parent.remove(node);
 	    ret.add(node);
 	}
-	for(GXLEdge edge : toRemoveEdge){
+	for(GXLEdge edge : toRemoveEdgeSpecial){
 	    GXLElement parent = edge.getParent();
 	    parent.remove(edge);
 	    ret.add(edge);
 	}
+	for(GXLEdge edge : toRemoveEdge){
+	    GXLElement parent = edge.getParent();
+	    parent.remove(edge);
+	}
 	GXLDocument doc = new GXLDocument();
 	doc.getDocumentElement().add(ret);
+	doc.write(new File("temp.gxl"));
 	return doc.getDocumentElement().getGraphAt(0);
     }
     private class workFileParser{

@@ -77,7 +77,7 @@ public class cActor extends Actor{
 	}
 	return list.toArray(new String[0]);
     }
-    protected void buildGlobals(StringBuffer buf)throws Exception{
+    protected void buildGlobals(StringBuilder buf)throws Exception{
 	//This can never be the starting actor or the last actor.  Also
 	//note that this cannot have more than one precedence guard or
 	//precedence update labels, i.e., no need to split with ","
@@ -113,7 +113,7 @@ public class cActor extends Actor{
 	}
 	Actor.countS =1;
     }
-    protected String buildSystem(StringBuffer buf)throws Exception{
+    protected String buildSystem(StringBuilder buf)throws Exception{
 	// Instantiate the state machines
 	String guards[] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
 	for(int y=0;y<guards.length;++y)
@@ -121,7 +121,7 @@ public class cActor extends Actor{
 	Actor.countS=1;
 	return Actor.names;
     }
-    protected void buildTemplate(StringBuffer buf)throws Exception{
+    protected void buildTemplate(StringBuilder buf)throws Exception{
 	String guards [] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
 	String updates [] = ((GXLString)getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
 
@@ -142,7 +142,7 @@ public class cActor extends Actor{
 	Actor.countS=1;
     }
     @SuppressWarnings("unchecked")
-    protected void buildParallel (StringBuffer gb, StringBuffer tb, StringBuffer sb) throws Exception{
+    protected void buildParallel (StringBuilder gb, StringBuilder tb, StringBuilder sb) throws Exception{
 	/**
 	   @see Actor.java and eActor.java
 	 */

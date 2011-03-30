@@ -171,6 +171,7 @@ public class compilerStage1 implements compilerStage{
 		// System.out.println(sGraph.getActorCount());
 
 		//Mark all the mergeNodes
+		System.out.print(".......");
 		markMergeAndSplitNodes(((Actor)sGraph.getSourceNode()));
 		clearVisited(((Actor)sGraph.getSourceNode()));
 		//now add guards and updates
@@ -190,6 +191,7 @@ public class compilerStage1 implements compilerStage{
 		Stack<Actor> stack = new Stack<Actor>();
 		Stack<Integer> index = new Stack<Integer>();
 		checkStructureAndMarkNodes(((Actor)sGraph.getSourceNode()),stack,index);
+		System.out.print(".......");
 		//Print stuff out to see what exactly happened
 		// sGraph.simpleDFT(((Actor)sGraph.getSourceNode()),
 		// 		 new  applyFunctionsToStream(){

@@ -7,12 +7,22 @@ TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
 SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java
 
-# COMPILE_FILES=../sample_stream-graph2.gxl
-COMPILE_FILES=../work-after-partition.gxl
+#This is a working example
+#COMPILE_FILES=../sample_stream-graph2.gxl
 
-all: model
+#This takes too long to compile
+# COMPILE_FILES=../work-after-partition.gxl
 
-compile:
+benchmark1=../benchmarks/audiobeam.dot.gxl
+benchmark2=../benchmarks/fft.dot.gxl
+benchmark3=../benchmarks/bitonicsort.dot.gxl
+benchmark4=../benchmarks/vocoder.dot.gxl
+benchmark5=../benchmarks/serpent.dot.gxl
+benchmark6=../benchmarks/tde.dot.gxl
+
+all: compile
+
+compile: stream2mc
 	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
@@ -21,7 +31,7 @@ arch:
 
 clean:
 	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
-	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/
+	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc
 
 testini:
 	$(CR) -cp $(CLASSPATH) org/IBM/iniParser core.ini 
@@ -59,4 +69,8 @@ stage3: compile
 stage4: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 \
-	$(COMPILE_FILES)
+	$(benchmark2)
+
+stream2mc:
+	rm -f stream2mc
+	gcc -std=gnu99 -g -o stream2mc main.c
