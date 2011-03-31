@@ -45,6 +45,7 @@ public class cActor extends Actor{
 	else setAttr("work_x86",new GXLString(label));
     }
     //This is a bit more complex then eActor's updates
+    private static Hashtable<String,iniParser> parsers = new Hashtable<String,iniParser>(2);
     protected void updateLabels(ArrayList<GXLNode> p, ArrayList<GXLEdge> c)throws Exception{
 	String guardLabels = getGuardLabels();
 	String updateLabels = getUpdateLabels();
@@ -62,7 +63,6 @@ public class cActor extends Actor{
 	// There is never a possiblity that dummyTerminalNode
 	//or dummyStartNode are cActors, so no worries here
 	org.IBM.iniParser parser=null;
-	Hashtable<String,iniParser> parsers = new Hashtable<String,iniParser>(2);
 	for(int r=0;r<c.size();++r){
 	    //Now let us get the actual time required to send this data
 	    //through.  
@@ -100,8 +100,9 @@ public class cActor extends Actor{
 		guardLabels += gls[t]+"$"+sID+";";
 	    for(int t=0;t<uls.length;++t)
 		updateLabels += uls[t]+"$"+tID+";";
-	    System.out.print("..");
 	} 
+	System.out.print("..");
+	System.out.flush();
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));
 	setWorkLabel(workLabels);
