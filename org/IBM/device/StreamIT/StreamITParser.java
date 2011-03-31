@@ -155,7 +155,7 @@ public class StreamITParser {
 		//Set the commNode attributes
 		commNode.setAttr("rep",new GXLString("1"));
 		commNode.setAttr("rate",new GXLString(map.get(name+":out_bytes")));
-		commNode.setAttr("sourceActorRate",new GXLString(map.get(name+":rep")));
+		commNode.setAttr("sourceActorRep",new GXLString(map.get(name+":rep")));
 		commNode.setAttr("work_x86",new GXLString("0"));
 		//Remove the edge from the edges arraylist
 		edges.remove(r);--r;
@@ -196,7 +196,11 @@ public class StreamITParser {
 		    ret.add(edgeC2);
 		    ret.add(edgeC1);
 		    commNode.setAttr("rep",new GXLString("1"));
-		    commNode.setAttr("sourceActorRate",new GXLString(map.get(name+":rep")));
+		    //Note I am setting this to one, because StreamIT
+		    //specification says that a split or merge node is
+		    //only run once in the graph -- from what I
+		    //understand.
+		    commNode.setAttr("sourceActorRep",new GXLString("1"));
 		    commNode.setAttr("rate",new GXLString(map.get(name2+":in_bytes")));
 		    commNode.setAttr("work_x86",new GXLString("0"));
 		    edges.remove(r);--r;

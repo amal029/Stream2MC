@@ -26,7 +26,7 @@ compile: stream2mc
 	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
-	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/clf1 /home/amal029/clf2 -nlf /home/amal029/nlf1 /home/amal029/nlf2
+	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 	gxl2dot pArch.gxl -o pArch$(HN).dot
 
 clean:
@@ -34,7 +34,7 @@ clean:
 	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc
 
 testini:
-	$(CR) -cp $(CLASSPATH) org/IBM/iniParser core.ini 
+	$(CR) -cp $(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
 model: stage4
 
@@ -72,5 +72,5 @@ stage4: compile
 	$(benchmark2)
 
 stream2mc:
-	rm -f stream2mc
+	rm -f ./stream2mc
 	gcc -std=gnu99 -g -o stream2mc main.c

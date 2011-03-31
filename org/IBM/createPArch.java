@@ -327,7 +327,7 @@ public class createPArch{
 		    for(int q=0;q<n.size();++q){
 			for(int w=0;w<m.size();++w){
 			    GXLEdge edge = new GXLEdge(n.get(q),m.get(w));
-			    edge.setAttr("network_latency_file",new GXLString("Name:"+nFiles.get(r)+":"+"Type:ini:Parser:org.IBM.iniParser"));
+			    edge.setAttr("latency_file",new GXLString("Name:"+nFiles.get(r)+":"+"Type:ini:Parser:org.IBM.iniParser"));
 			    edge.setAttr("label",new GXLString("Network latency, check file: "+nFiles.get(r)));
 			    list.add(edge);
 			}

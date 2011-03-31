@@ -65,23 +65,13 @@ public final class iniParser{
 	return getLatency(latencyMap,key);
     }
     public long getLatency(HashMap<String,Long> latencyMap, String key){
-	Iterator<String>i = latencyMap.keySet().iterator();
-	i = latencyMap.keySet().iterator();
 	Long val = new Long(0);
 	Long cVal = new Long(0);
-	while(i.hasNext()){
-	    String k = i.next();
-	    if(k.equals("constant")){cVal = latencyMap.get(k);}
-	    if(key.equals(k)){
-		val = latencyMap.get(key);
-		break;
-	    }
-	}
+	if((val = latencyMap.get(key))==null)
+	    val = latencyMap.get("constant");
 	if(val.longValue() != 0) return val.longValue();
-	else{
-	    val = cVal;
-	    return val.longValue();
-	}
+	else
+	    return cVal.longValue();
     }
     private void explode(HashMap<String,String> map) throws Exception{
 	latencyMap = iExplode(map);
