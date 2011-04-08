@@ -70,7 +70,7 @@ public class compilerStage1 implements compilerStage{
 	else if(sNode.ifVisited()) return;
 	sNode.setGuardLabels("L"+(++gLabel));
 	sNode.setVisited(true); //I have visited this node already.
-	//This is a recursive function.
+	//This is a tail recursive function.
 	for(int e=0;e<sNode.getConnectionCount();++e){
 	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
 		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();

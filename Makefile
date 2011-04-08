@@ -5,7 +5,8 @@ CFALGS=-Xlint -g
 HN=`hostname`
 TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
-SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java
+DECLUSTERINGFILES=$(TOPLEVEL)/declustering
+SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.java
 
 #This is a working example
 #COMPILE_FILES=../sample_stream-graph2.gxl
@@ -29,9 +30,12 @@ arch:
 	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 	gxl2dot pArch.gxl -o pArch$(HN).dot
 
+arch2:
+	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
+
 clean:
 	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
-	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc
+	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc $(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~
 
 testini:
 	$(CR) -cp $(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
@@ -74,3 +78,8 @@ stage4: compile
 stream2mc:
 	rm -f ./stream2mc
 	gcc -std=gnu99 -g -o stream2mc main.c
+
+declustering: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
+	$(benchmark1)

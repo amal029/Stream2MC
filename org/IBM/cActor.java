@@ -101,7 +101,7 @@ public class cActor extends Actor{
 	    for(int t=0;t<uls.length;++t)
 		updateLabels += uls[t]+"$"+tID+";";
 	} 
-	System.out.print("..");
+	System.out.print("...");
 	System.out.flush();
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));

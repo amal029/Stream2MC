@@ -69,7 +69,8 @@ public final class iniParser{
 	Long cVal = new Long(0);
 	if((val = latencyMap.get(key))==null)
 	    val = latencyMap.get("constant");
-	if(val.longValue() != 0) return val.longValue();
+	if(val.longValue() != 0) 
+	    return val.longValue();
 	else
 	    return cVal.longValue();
     }
