@@ -103,7 +103,7 @@ public class Actor extends GXLNode{
     protected void setMergeNode(String val){
 	this.setAttr("myMergeNode",new GXLString(val));
     }
-    protected String getMergeNode(){
+    public String getMergeNode(){
 	if(this.getAttr("myMergeNode") == null) return null;
 	else return ((GXLString)this.getAttr("myMergeNode").getValue()).getValue();
     }

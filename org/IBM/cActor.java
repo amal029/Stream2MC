@@ -65,12 +65,12 @@ public class cActor extends Actor{
 	org.IBM.iniParser parser=null;
 	for(int r=0;r<c.size();++r){
 	    //Now let us get the actual time required to send this data
-	    //through.  
+	    //through.
 
 	    //Update the guards
+	    //DEBUG
 	    String sID = ((GXLNode)c.get(r).getSource()).getID();
 	    String tID = ((GXLNode)c.get(r).getTarget()).getID();
-	    // System.out.println(sID+","+tID+","+r);
 
 	    String latencyFile = ((GXLString)c.get(r).getAttr("latency_file").getValue()).getValue();
 	    //Now tokenize this to get the file name and the parser that
@@ -202,5 +202,27 @@ public class cActor extends Actor{
 	    buildParallelSystem(sb,i,count);
 	    ++count;
 	}
+    }
+
+    //These are the methods required for the declustering algorithm to
+    //work
+    // Sat Apr 9 14:07:28 IST 2011
+    public long getMultiProcessorTime(){
+	String tokens[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
+	long singleProcessorTime = (new Long(tokens[0]).longValue());
+	for(int e=1;e<tokens.length;++e){
+	    singleProcessorTime = singleProcessorTime>=(new Long(tokens[e]).longValue())?
+		singleProcessorTime:(new Long(tokens[e]).longValue());
+	}
+	return singleProcessorTime;
+    }
+    public long getSingleProcessorTime(){
+	String tokens[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
+	long singleProcessorTime = (new Long(tokens[0]).longValue());
+	for(int e=1;e<tokens.length;++e){
+	    singleProcessorTime = singleProcessorTime<=(new Long(tokens[e]).longValue())?
+		singleProcessorTime:(new Long(tokens[e]).longValue());
+	}
+	return singleProcessorTime;
     }
 }

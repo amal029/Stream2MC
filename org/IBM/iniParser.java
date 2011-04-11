@@ -6,12 +6,17 @@ import java.util.*;
 
 public final class iniParser{
     private static StringBuffer contents=null;
-    private static HashMap<String,Long> latencyMap=new HashMap<String,Long>();
+    private HashMap<String,Long> latencyMap=new HashMap<String,Long>();
     public iniParser(){}
+    private String fileName=null;
     public iniParser(String filename) throws FileNotFoundException, IOException, Exception{
 	File file = new File(filename);
+	this.fileName = filename;
 	if(file.exists()) {contents = readFile(file);getLatency();}
 	else throw new FileNotFoundException();
+    }
+    public String getFileName(){
+	return fileName;
     }
     private static StringBuffer readFile(File file) throws FileNotFoundException,IOException{
         StringBuffer contents = new StringBuffer();
@@ -130,64 +135,5 @@ public final class iniParser{
 	    }
 	}
 	return map;
-    }
-    public static void main(String args[]){
-    	if(args.length < 1){
-    	    System.out.println("Usage: iniParser <file.ini>");
-    	    System.exit(1);
-    	}
-    	try{
-    	    iniParser parser = new iniParser(args[0]);
-    	    HashMap<String,String>map = parser.getInfo();
-    	    Iterator<String> i = map.keySet().iterator();
-    	    System.out.println("getInfo()");
-    	    while(i.hasNext()){
-    		String key = i.next();
-    		System.out.println(key+"="+map.get(key));
-    	    }
-    	    System.out.println("\n\n\n");
-    	    i = latencyMap.keySet().iterator();
-    	    while(i.hasNext()){
-    		String key = i.next();
-    		// System.out.println(key+"="+latencyMap.get(key));
-    	    }
-    	    //Now the main test...
-    	    if(!parser.isByteLatency("0")){
-    	    	System.out.println("This is an exact value for sending 0 bytes of data: "+parser.getLatency("0"));
-    	    }
-    	    if(!parser.isByteLatency("300")){
-    	    	System.out.println("This is an exact value for sending 300 bytes of data: "+parser.getLatency("300"));
-    	    }
-    	    if(!parser.isByteLatency("90")){
-    	    	System.out.println("This is an exact value for sending 90 bytes of data: "+parser.getLatency("90"));
-    	    }
-    	    if(!parser.isByteLatency("700")){
-    	    	System.out.println("This is an exact value for sending 700 bytes of data: "+parser.getLatency("700"));
-    	    }else System.out.println("This is value for sending 1 byte of data: "+parser.getLatency("700")+" and hence 700 bytes will take: "+(parser.getLatency("700")*700));
-    	    if(!parser.isByteLatency("80000")){
-    	    	System.out.println("This is an exact value for sending 800 bytes of data: "+parser.getLatency("80000"));
-    	    }else System.out.println("This is value for sending 1 byte of data: "+parser.getLatency("80000")+" and hence 80000 bytes will take: "+(parser.getLatency("80000")*80000));
-    	    // /*
-    	    //   Testing core [0..1] latency values
-    	    //  */
-    	    // HashMap<String,Long> coreMap = parser.getLatencyMap("[0..1]");
-    	    // if(!parser.isByteLatency(coreMap,"0")){
-    	    // 	System.out.println("This is an exact value for sending 0 bytes of data: "+parser.getLatency(coreMap,"0"));
-    	    // }
-    	    // if(!parser.isByteLatency(coreMap,"300")){
-    	    // 	System.out.println("This is an exact value for sending 300 bytes of data: "+parser.getLatency(coreMap,"300"));
-    	    // }
-    	    // if(!parser.isByteLatency(coreMap,"90")){
-    	    // 	System.out.println("This is an exact value for sending 90 bytes of data: "+parser.getLatency(coreMap,"90"));
-    	    // }
-    	    // if(!parser.isByteLatency(coreMap,"700")){
-    	    // 	System.out.println("This is an exact value for sending 700 bytes of data: "+parser.getLatency(coreMap,"700"));
-    	    // }else System.out.println("This is value for sending 1 byte of data: "+parser.getLatency(coreMap,"700")+" and hence 700 bytes will take: "+(parser.getLatency(coreMap,"700")*700));
-    	    // if(!parser.isByteLatency(coreMap,"800")){
-    	    // 	System.out.println("This is an exact value for sending 800 bytes of data: "+parser.getLatency(coreMap,"800"));
-    	    // }else System.out.println("This is value for sending 1 byte of data: "+parser.getLatency(coreMap,"800")+" and hence 800 bytes will take: "+(parser.getLatency(coreMap,"800")*800));
-    	}
-    	// catch(IOException e){e.printStackTrace();}
-    	catch(Exception ae){ae.printStackTrace();}
     }
 }
