@@ -149,7 +149,7 @@ public class declusterStage1 implements declusterStage{
 	    }
 	    else return time;
 	}
-	//Tail recursive call the calculate the SL in a upward going
+	//Tail recursive call to calculate the SL in an upward going
 	//manner in the graph.
 	for(int r=0;r<node.getConnectionCount();++r){
 	    if(node.getConnectionAt(r).getDirection().equals(GXL.IN)){
@@ -380,7 +380,6 @@ public class declusterStage1 implements declusterStage{
 	doc.write(new File("output/__temp_clusteredGraph.gxl"));
 	return clusters;
     }
-    //DEBUGGING
     private static void insertIncList(cActor c1, cActor c2, ArrayList<cActor> list){
 	boolean in1 = true, in2=true;
 	for(cActor act : list){
@@ -597,8 +596,8 @@ public class declusterStage1 implements declusterStage{
 		ArrayList<cActor> cutArcs = (ArrayList<cActor>)list.pop();
 		streamGraph mainGraph = (streamGraph)list.pop();
 		doHeirarchicalClustering(sortedClusterList,cutArcs,mainGraph);
-
-
+		//write out the mainGraph
+		mainGraph.getDocument().write(new File("output/__temp_heirarchical_clustered_graph.gxl"));
 
 		//This is just to put a new line
 		System.out.println();
@@ -610,5 +609,190 @@ public class declusterStage1 implements declusterStage{
 
     private static void doHeirarchicalClustering(Stack<streamGraph> sortedClusterList,ArrayList<cActor> cutArcs,
 						 streamGraph mainGraph){
+
+	while(sortedClusterList.size()>1){
+	    streamGraph me = sortedClusterList.remove(0);
+	    // System.out.println(me.getID());
+	    streamGraph pCluster = getPairingCluster(me,sortedClusterList,cutArcs);
+	    // System.out.println(pCluster.getID());
+	    // if(me.getParent()!=null)
+	    // 	System.out.println(((eActor)me.getParent()).getID());
+	    // if(pCluster.getParent()!=null)
+	    // 	System.out.println(((eActor)pCluster.getParent()).getID());
+
+	    //Add this node to the heirarchical cluster graph
+	    //Remove the current connections in the mainGraph
+	    eActor meN = (eActor)me.getParent();
+	    eActor pClusterN = (eActor)pCluster.getParent();
+	    mainGraph.remove(meN);
+	    mainGraph.remove(pClusterN);
+	    //Add a new graph and a new node
+	    streamGraph clusteredGraph = new streamGraph(meN.getID()+"--"+pClusterN.getID());
+	    clusteredGraph.setEdgeMode("directed");
+	    clusteredGraph.setAttr("heirarchicalGraph",new GXLString("true"));
+	    clusteredGraph.add(meN);
+	    clusteredGraph.add(pClusterN);
+	    eActor clusteredNode = new eActor(meN.getID()+"---"+pClusterN.getID());
+	    //Add the new graph to the node and the node to the mainGraph
+	    clusteredNode.add(clusteredGraph);
+	    mainGraph.add(clusteredNode);
+	    //Now call the method to get the basic clusters in this clusteredGraph
+	    ArrayList<streamGraph> basicClusters = new ArrayList<streamGraph>(2);
+	    getBasicClusters(clusteredGraph,basicClusters);
+	    long execTime = 0;
+	    for(streamGraph s : basicClusters)
+		execTime += new Long(((GXLString)s.getAttr("clusterExecTime").getValue()).getValue()).longValue();
+	    clusteredGraph.setAttr("clusterExecTime",new GXLString(""+execTime));
+	    //Now sort them again
+	    ArrayList<streamGraph> ccclusters = new ArrayList<streamGraph>(sortedClusterList.size()+1);
+	    while(!sortedClusterList.empty())
+		ccclusters.add(sortedClusterList.remove(0));
+	    //This in turn is adding the newly formed cluster (heirarchical) back into the sortedlist.
+	    ccclusters.add(clusteredGraph);
+	    //Now sort
+	    sortedClusterList = sortClusters(ccclusters);
+	    //DEBUGGING
+	    // for(streamGraph s : sortedClusterList)
+	    // 	System.out.println(s.getID()+"::::"+((GXLString)s.getAttr("clusterExecTime").getValue()).getValue());
+	}
+    }
+
+    private static void getBasicClusters(streamGraph sGraph,ArrayList<streamGraph> basicClusters){
+	if(sGraph.getAttr("heirarchicalGraph")!=null){
+	    for(int e=0;e<sGraph.getGraphElementCount();++e){
+		if(sGraph.getGraphElementAt(e) instanceof eActor){
+		    eActor node = (eActor)sGraph.getGraphElementAt(e);
+		    if(node.getGraphCount()>1) throw new RuntimeException("node "+node.getID()+" contains more than one graph");
+		    getBasicClusters((streamGraph)node.getGraphAt(0),basicClusters);
+		}
+	    }
+	}
+	else{
+	    basicClusters.add(sGraph);
+	}
+    }
+
+    //DEBUGGING CODE
+    private static void PRINT(ArrayList<Object> list,char val){
+	for(Object o : list){
+	    switch(val){
+	    case 'c':
+		System.out.println(((cActor)o).getID());
+		break;
+	    case 'e':
+		System.out.println(((eActor)o).getID());
+		break;
+	    case 's':
+		System.out.println(((streamGraph)o).getID()+":::"+
+				   ((GXLString)((streamGraph)o).getAttr("clusterExecTime").getValue()).getValue());
+		// System.out.println(((streamGraph)o).getID());
+		break;
+	    }
+	}
+    }
+    @SuppressWarnings("unchecked")
+    //me can be a heirarchical graph
+    private static streamGraph getPairingCluster(streamGraph me, Stack<streamGraph> sortedClusterList, ArrayList<cActor> cutArcs){
+	//Get the cutArcs in the me streamGraph
+	ArrayList<streamGraph> basicClusters = new ArrayList<streamGraph>(4);
+	getBasicClusters(me,basicClusters);
+	ArrayList<cActor> myCutArcs = new ArrayList<cActor>(4);
+	for(streamGraph s : basicClusters){
+	    ArrayList<cActor> myCutArcs1 = getmycutArcs(s);
+	    for(cActor a : myCutArcs1)
+		myCutArcs.add(a);
+	}
+	// PRINT((ArrayList<Object>)myCutArcs.clone(),'c');
+	//Get the source and target nodes of this cutArcs
+	ArrayList<eActor> sourceAndTargets = getSourceAndTargetNodes(myCutArcs,cutArcs);
+	// PRINT((ArrayList<Object>)sourceAndTargets.clone(),'e');
+	//Get the cluster that these source and targets nodes are in
+	ArrayList<streamGraph> clusters = getContainingClusters(sortedClusterList,sourceAndTargets);
+	// PRINT((ArrayList<Object>)clusters.clone(),'s');
+	//Get the smallest of these clusters
+	//clusters can contain a heirarchical graph
+	Stack<streamGraph> sCluster = sortClusters(clusters);
+	//Remove this cluster from the sortedClusterList
+	streamGraph smallestPairingCluster = sCluster.remove(0);
+	sortedClusterList.remove(smallestPairingCluster);
+
+	//Make a new node in a new Graph called the heirarchical cluster
+	//graph with these two clusters as children
+	return smallestPairingCluster;
+    }
+
+    //sortedClusterList can contain a heirarchical graph
+    private static streamGraph getcCluster(Stack<streamGraph>sortedClusterList, eActor act){
+	streamGraph ret = null;
+	for(streamGraph sGraph : sortedClusterList){
+	    ArrayList<streamGraph> sGraphs = new ArrayList<streamGraph>(4);
+	    getBasicClusters(sGraph,sGraphs);
+	    for(streamGraph s : sGraphs){
+		for(int e=0;e<s.getGraphElementCount();++e){
+		    if(s.getGraphElementAt(e) instanceof eActor){
+			if(s.getGraphElementAt(e).getID().equals(act.getID())){
+			    ret = sGraph; break;
+			}
+		    }
+		}
+	    }
+	}
+	return ret;
+    }
+
+    private static ArrayList<streamGraph> getContainingClusters(Stack<streamGraph> graphs, ArrayList<eActor> sourceAndTargets){
+	ArrayList<streamGraph> ret = new ArrayList<streamGraph>(2);
+	//get the streamGraph with the node in it
+	for(eActor act : sourceAndTargets){
+	    streamGraph ccluster = getcCluster(graphs,act);
+	    if(ccluster == null) ; /*This means that this node has already been added*/
+	    //add the ccluster in the ret arraylist
+	    else{
+		boolean add = true;
+		for(streamGraph g : ret){
+		    if(g.equals(ccluster)){add=false; break;}
+		}
+		if(add) ret.add(ccluster);
+	    }
+	}
+	return ret;
+    }
+
+    //
+    private static ArrayList<eActor> getSourceAndTargetNodes(ArrayList<cActor> myCutArcs, ArrayList<cActor> cutArcs){
+	ArrayList<eActor> sourceAndTargets = new ArrayList<eActor>(2);
+	for(cActor act : myCutArcs){
+	    for(cActor act1 : cutArcs){
+		if(act.getID().equals(act1.getID())){
+		    for(int r=0;r<act1.getConnectionCount();++r){
+			if(act1.getConnectionAt(r).getDirection().equals(GXL.IN)){
+			    GXLEdge le = (GXLEdge)act1.getConnectionAt(r).getLocalConnection();
+			    Actor node = (Actor)le.getTarget(); //This is always an eActor
+			    sourceAndTargets.add((eActor)node);
+			}
+			else if(act1.getConnectionAt(r).getDirection().equals(GXL.OUT)){
+			    GXLEdge le = (GXLEdge)act1.getConnectionAt(r).getLocalConnection();
+			    Actor node = (Actor)le.getSource(); //This is always an eActor
+			    sourceAndTargets.add((eActor)node);
+			}
+		    }
+		    break;
+		}
+	    }
+	}
+	return sourceAndTargets;
+    }
+
+
+    //
+    private static ArrayList<cActor> getmycutArcs(streamGraph sGraph){
+	ArrayList<cActor> cutArcs = new ArrayList<cActor>(1);
+	for(int e=0;e<sGraph.getGraphElementCount();++e){
+	    if(sGraph.getGraphElementAt(e) instanceof cActor){
+		if((((cActor)(sGraph.getGraphElementAt(e))).getAttr("toCut"))!=null)
+		    cutArcs.add((cActor)(sGraph.getGraphElementAt(e)));
+	    }
+	}
+	return cutArcs;
     }
 }
