@@ -45,7 +45,7 @@ public class declusterStage1 implements declusterStage{
 	}
 	else list.push(a);
     }
-    private void calculateStaticLevel(Actor lNode, long x, Stack <eActor> sortedList) throws RuntimeException{
+    private static void calculateStaticLevel(Actor lNode, long x, Stack <eActor> sortedList, boolean cAct) throws RuntimeException{
 	long SL = -1;
 	long temp=0;
 	if(lNode.iseActor()){
@@ -70,6 +70,16 @@ public class declusterStage1 implements declusterStage{
 	    else throw new RuntimeException(lNode.getID());
 	    x+=temp;
 	}
+	else if(lNode.iscActor() && cAct){
+	    if(lNode.getAttr("SL")!=null){
+		SL = new Long(((GXLString)lNode.getAttr("SL").getValue()).getValue()).longValue();
+		SL = SL>=x?SL:x;
+		lNode.setAttr("SL",new GXLString(""+SL));
+	    }
+	    else
+		lNode.setAttr("SL",new GXLString(""+x));
+	    x += ((cActor)lNode).getMultiProcessorTime();
+	}
 	//Now do a tail recursive call upwards in the graph
 	int counter=0;
 	for(int e=0;e<lNode.getConnectionCount();++e){
@@ -78,7 +88,7 @@ public class declusterStage1 implements declusterStage{
 		    x=(new Long(((GXLString)lNode.getAttr("SL").getValue()).getValue()).longValue()+temp);
 		GXLEdge le = (GXLEdge)lNode.getConnectionAt(e).getLocalConnection();
 		Actor node = (Actor)le.getSource();
-		calculateStaticLevel(node,x,sortedList);
+		calculateStaticLevel(node,x,sortedList,cAct);
 		++counter;
 	    }
 	}
@@ -587,7 +597,7 @@ public class declusterStage1 implements declusterStage{
 		//Make a temp graph for debugging
 		GXLDocument doc = sGraph.getDocument();
 		doc.write(new File("output/__temp_declusterStage1.gxl"));
-		calculateStaticLevel(getLastNode((Actor)sGraph.getSourceNode()),0,sortedList);
+		calculateStaticLevel(getLastNode((Actor)sGraph.getSourceNode()),0,sortedList,false);
 		//remove the dummyTerminalNode from the sortedList
 		sortedList.remove(sGraph.getSourceNode());
 		//Now make the basic clusters
@@ -595,9 +605,12 @@ public class declusterStage1 implements declusterStage{
 		Stack<streamGraph> sortedClusterList = (Stack<streamGraph>)list.pop();
 		ArrayList<cActor> cutArcs = (ArrayList<cActor>)list.pop();
 		streamGraph mainGraph = (streamGraph)list.pop();
-		doHeirarchicalClustering(sortedClusterList,cutArcs,mainGraph);
+		int levels = doHeirarchicalClustering(sortedClusterList,cutArcs,mainGraph);
 		//write out the mainGraph
 		mainGraph.getDocument().write(new File("output/__temp_heirarchical_clustered_graph.gxl"));
+
+		//Now do declustering --- the final step
+		decluster(mainGraph,sGraph,levels);
 
 		//This is just to put a new line
 		System.out.println();
@@ -607,9 +620,160 @@ public class declusterStage1 implements declusterStage{
 	return rets;
     }
 
-    private static void doHeirarchicalClustering(Stack<streamGraph> sortedClusterList,ArrayList<cActor> cutArcs,
+    @SuppressWarnings("unchecked")
+	private static void decluster(streamGraph mainGraph, streamGraph origGraph,int levels) throws Exception{
+	//Find out the number of processors allocated for this graph
+	ArrayList<ArrayList> list = pArchParser(new File("pArch.gxl"));
+	ArrayList<GXLNode> p = (ArrayList<GXLNode>)list.get(0);
+	ArrayList<GXLEdge> e = (ArrayList<GXLEdge>)list.get(1);
+
+	//Number of processors??
+	int numProcessors = p.size();
+
+	/**@bug*/
+	//Declustering algorithm cannot take care of heterogeneous
+	//architectures, i.e., archs where actors take different time to
+	//run of different processors, and also the communication lines
+	//take the same amount of time in the declustering algorithm.
+	if(p.size() < 0) throw new RuntimeException("There are no processors allocated for graph aborting WILL ROBINSON!!!");
+
+	//Calculate the total time required to run origGraph on a single
+	//processor
+	origGraph.clearVisited(origGraph.getSourceNode());
+	long time = singleProcessorMakeSpan(origGraph.getSourceNode());
+	origGraph.clearVisited(origGraph.getSourceNode());
+	System.out.println("Single processor makespan: "+time);
+
+	//Now start declustering and allocating stuff to processors
+	ArrayList<ArrayList> allocs = new ArrayList<ArrayList>(10);
+	long shortestMakeSpan = startDeclustering(mainGraph,origGraph,time,allocs,levels,p,time);
+	System.out.println("shortestMakeSpan: "+shortestMakeSpan);
+
+
+    }
+
+    private static long startDeclustering(streamGraph mainGraph, streamGraph origGraph, long currMakeSpan,
+					  ArrayList<ArrayList> allocs,int levels, ArrayList<GXLNode> processors,
+					  long time)
+	throws Exception{
+
+	//Calculate the static level for the whole graph, including
+	//communication nodes.
+	Stack<eActor> throwAway = new Stack<eActor>();
+	calculateStaticLevel(getLastNode(origGraph.getSourceNode()),0,throwAway,true);
+	long shortestMakeSpan = time;
+	ArrayList<streamGraph> bs = new ArrayList<streamGraph>();
+	ArrayList<GXLNode> ps = new ArrayList<GXLNode>();
+	//Get clusters C0 and C1
+	while(levels > 0){
+	    ArrayList<streamGraph> clusters = new ArrayList<streamGraph>(2);
+	    getClusters(mainGraph,clusters,levels);
+	    //Now get the smaller of the two clusters
+	    Stack<streamGraph> sortedClusterList = sortClusters(clusters);
+	    streamGraph smallerCluster = sortedClusterList.remove(0);
+	    //Now assign all nodes in smallerCluster to each of the
+	    //processor in the system
+	    int counter=0;
+	    //Get the nodes in the smallerCluster
+	    ArrayList<streamGraph> basicClusters = new ArrayList<streamGraph>(2);
+	    getBasicClusters(smallerCluster,basicClusters);
+	    for(GXLNode p : processors){
+		//Allocate the nodes to the processors
+		for(streamGraph b : basicClusters)
+		    allocateProcessors(b,p.getID(),origGraph);
+		//Now list schedule this damn thing to get a makespan
+		long tempTime = new org.IBM.declustering.listSchedule(origGraph,processors).schedule();
+		//Only accept this allocation if this allocation
+		//gives better timing than the previous one.
+		if(tempTime <= shortestMakeSpan){
+		    //This is needed, because list scheduling removes
+		    //all allocations
+		    for(streamGraph b : basicClusters)
+			bs.add(b);
+		    ps.add(p);
+		    shortestMakeSpan = tempTime;
+		}
+	    }
+	    //Here you have to add the processor allocation for the
+	    //previous best cases, because they will be lost due to list
+	    //scheduling
+	    for(GXLNode p : ps){
+		for(streamGraph b : bs)
+		    allocateProcessors(b,p.getID(),origGraph);
+	    }
+	    --levels;
+	}
+	return shortestMakeSpan;
+    }
+
+    private static ArrayList<Actor> getNodes(streamGraph g){
+	ArrayList<Actor> ret = new ArrayList<Actor>(10);
+	for(int e=0;e<g.getGraphElementCount();++e)
+	    if(g.getGraphElementAt(e) instanceof Actor) ret.add((Actor)g.getGraphElementAt(e));
+	return ret;
+    }
+
+    private static void allocateProcessors(streamGraph b, String id, streamGraph origGraph){
+	ArrayList<Actor> oNodes = getNodes(origGraph);
+	ArrayList<Actor> bNodes = getNodes(b);
+	for(Actor bNode : bNodes){
+	    for(Actor oNode : oNodes){
+		if(oNode.getID().equals(bNode.getID()))
+		    oNode.setAttr("ProcessorAlloc",new GXLString(id));
+	    }
+	}
+    }
+
+    private static void getClusters(streamGraph sGraph, ArrayList<streamGraph> basicClusters, int level){
+	if(sGraph.getAttr("heirarchicalGraph")!=null){
+	    if(sGraph.getAttr("clusterLevel")!=null &&
+	       (((GXLString)sGraph.getAttr("clusterLevel").getValue()).getValue().equals(new String(level+"")))){
+		   //Get the two graphs inside graph
+		   for(int e=0;e<sGraph.getGraphElementCount();++e){
+		       if(sGraph.getGraphElementAt(e) instanceof eActor){
+			   eActor node = (eActor)sGraph.getGraphElementAt(e);
+			   if(node.getGraphCount()>1) throw new RuntimeException("node "+node.getID()+" contains more than one graph");
+			   basicClusters.add((streamGraph)node.getGraphAt(0));
+		       }
+		   }
+		   return;
+	       }
+	    else{
+		for(int e=0;e<sGraph.getGraphElementCount();++e){
+		    if(sGraph.getGraphElementAt(e) instanceof eActor){
+			eActor node = (eActor)sGraph.getGraphElementAt(e);
+			if(node.getGraphCount()>1) throw new RuntimeException("node "+node.getID()+" contains more than one graph");
+			getClusters((streamGraph)node.getGraphAt(0),basicClusters,level);
+		    }
+		}
+	    }
+	}
+    }
+
+    private static long singleProcessorMakeSpan(Actor sNode){
+	long time = 0;
+	if(sNode.ifVisited()) return time;
+	sNode.setVisited();
+	if(sNode instanceof eActor){
+	    if(sNode.getID().equals("dummyTerminalNode") || sNode.getID().equals("dummyStartNode"));
+	    else
+		time = new Long(((GXLString)((eActor)sNode).getAttr("total_time_x86").getValue()).getValue()).longValue();
+	}
+	else if(sNode instanceof cActor)
+	    time = ((cActor)sNode).getSingleProcessorTime();
+	for(int r=0;r<sNode.getConnectionCount();++r){
+	    if(sNode.getConnectionAt(r).getDirection().equals(GXL.IN)){
+		GXLEdge le1 = (GXLEdge)sNode.getConnectionAt(r).getLocalConnection();
+		Actor node1 = (Actor)le1.getTarget();
+		time += singleProcessorMakeSpan(node1);
+	    }
+	}
+	return time;
+    }
+    private static int doHeirarchicalClustering(Stack<streamGraph> sortedClusterList,ArrayList<cActor> cutArcs,
 						 streamGraph mainGraph){
 
+	int counter = 0;
 	while(sortedClusterList.size()>1){
 	    streamGraph me = sortedClusterList.remove(0);
 	    // System.out.println(me.getID());
@@ -630,6 +794,8 @@ public class declusterStage1 implements declusterStage{
 	    streamGraph clusteredGraph = new streamGraph(meN.getID()+"--"+pClusterN.getID());
 	    clusteredGraph.setEdgeMode("directed");
 	    clusteredGraph.setAttr("heirarchicalGraph",new GXLString("true"));
+	    ++counter;
+	    clusteredGraph.setAttr("clusterLevel",new GXLString(""+counter));
 	    clusteredGraph.add(meN);
 	    clusteredGraph.add(pClusterN);
 	    eActor clusteredNode = new eActor(meN.getID()+"---"+pClusterN.getID());
@@ -655,6 +821,8 @@ public class declusterStage1 implements declusterStage{
 	    // for(streamGraph s : sortedClusterList)
 	    // 	System.out.println(s.getID()+"::::"+((GXLString)s.getAttr("clusterExecTime").getValue()).getValue());
 	}
+	mainGraph.setAttr("heirarchicalGraph",new GXLString("true"));
+	return counter;
     }
 
     private static void getBasicClusters(streamGraph sGraph,ArrayList<streamGraph> basicClusters){
@@ -794,5 +962,48 @@ public class declusterStage1 implements declusterStage{
 	    }
 	}
 	return cutArcs;
+    }
+
+
+    //This class can be moved into a single separate library, so that
+    //both compilerStage3 and declusterStage1 can call it when
+    //needed. Currently, we have this replicated here from
+    //compilerStage3.
+    private static ArrayList<ArrayList> pArchParser(File pArch) throws Exception{
+	ArrayList<GXLNode> processors = new ArrayList<GXLNode>();
+	ArrayList<GXLEdge> connections = new ArrayList<GXLEdge>();
+	ArrayList<ArrayList> ret = new ArrayList<ArrayList>(2);
+	GXLDocument pArchDoc = new GXLDocument(pArch);
+	if(pArchDoc.getDocumentElement().getGraphCount() > 1)
+	    throw new RuntimeException("More than one architecture is described in the pArch.gxl file");
+	GXLGraph topGraph = pArchDoc.getDocumentElement().getGraphAt(0);
+
+	//Get the cluster
+	GXLNode cluster = PArchParser.getClusterAt(topGraph,0);
+	//Get the cluster architecture
+	GXLGraph cArch = PArchParser.getClusterArch(cluster);
+
+	//How many machines are there in this architecture
+	//I know there is just one cluster that's why I am not 
+	//getting the cluster information
+	for(int r=0;r<PArchParser.getMachinesCount(cArch);++r){
+	    GXLNode mnode = PArchParser.getMachineAt(cArch,r);
+	    GXLGraph mGraph = PArchParser.getMachineArch(mnode);
+
+	    //mGraph holds the architecture of the machine
+	    //This includes the nodes (logicalProcessors) and edges 
+	    //(connections between these processors)
+
+	    //Collect all the logicalProcessors in the mGraph
+	    for(int e=0;e<PArchParser.getLogicalProcessorCount(mGraph);++e)
+		processors.add(PArchParser.getLogicalProcessorAt(mGraph,e));
+	    for(int e=0;e<PArchParser.getLogicalProcessorConnectionCount(mGraph);++e)
+		connections.add(PArchParser.getLogicalProcessorConnectionAt(mGraph,e));
+	}
+	//Now add the network connections to connection arraylist
+	for(int e=0;e<PArchParser.getNetworkConnectionCount(cArch);++e)
+	    connections.add(PArchParser.getNetworkConnectionAt(cArch,e));
+	ret.add(processors); ret.add(connections);
+	return ret;
     }
 }
