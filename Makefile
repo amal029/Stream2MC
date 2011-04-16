@@ -14,12 +14,14 @@ SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.jav
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
 
-benchmark1=../benchmarks/audiobeam.dot.gxl
-benchmark2=../benchmarks/fft.dot.gxl
-benchmark3=../benchmarks/bitonicsort.dot.gxl
-benchmark4=../benchmarks/vocoder.dot.gxl
-benchmark5=../benchmarks/serpent.dot.gxl
-benchmark6=../benchmarks/tde.dot.gxl
+benchmark1=../benchmarks/audiobeam.dot.gxl #works with both uppaal and declustering
+benchmark2=../benchmarks/fft.dot.gxl #works with both uppaal and declustering
+benchmark3=../benchmarks/bitonicsort.dot.gxl #works with declustering and uppaal
+benchmark4=../benchmarks/vocoder.dot.gxl #Works with both uppaal and declustering
+benchmark5=../benchmarks/serpent_full.dot.gxl #works with declustering, values out of range for uppaal.
+benchmark6=../benchmarks/tde.dot.gxl #values are out of range in uppaal, because of int types. Works with declustering
+benchmark7=../benchmarks/des.dot.gxl # works with uppaal, work with declustering
+benchmark8=../benchmarks/mpeg2decoder.dot.gxl # overflowing values with uppaal, works with declustering
 
 all: compile
 
@@ -82,4 +84,4 @@ stream2mc:
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	$(benchmark1)
+	$(benchmark8)

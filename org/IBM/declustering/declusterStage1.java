@@ -110,19 +110,27 @@ public class declusterStage1 implements declusterStage{
 	Stack<eActor> ret = new Stack<eActor>();
 
 	Stack<eActor> temp = new Stack<eActor>();
+	//DEBUG
+	// System.out.println(splitNode.getID());
 	for(int e=0;e<splitNode.getConnectionCount();++e){
 	    if(splitNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
 		GXLEdge le = (GXLEdge)splitNode.getConnectionAt(e).getLocalConnection();
-		cActor node = (cActor)le.getTarget(); //This has got to be the communication node
-		//Now get the eActor from node
-		for(int r=0;r<node.getConnectionCount();++r){
-		    if(node.getConnectionAt(r).getDirection().equals(GXL.IN)){
-			GXLEdge le1 = (GXLEdge)node.getConnectionAt(r).getLocalConnection();
-			eActor node1 = (eActor)le1.getTarget(); //This has got to be the communication node
-			insert(ret,node1);
-			break;
+		Actor node = (Actor)le.getTarget();
+		if(node instanceof cActor){
+		    //Now get the eActor from node
+		    for(int r=0;r<node.getConnectionCount();++r){
+			if(node.getConnectionAt(r).getDirection().equals(GXL.IN)){
+			    GXLEdge le1 = (GXLEdge)node.getConnectionAt(r).getLocalConnection();
+			    eActor node1 = (eActor)le1.getTarget(); //This has got to be the communication node
+			    insert(ret,node1);
+			    break;
+			}
 		    }
 		}
+		else if(node instanceof eActor && ((eActor)node).getIsSplitNode());
+		else if(node instanceof eActor && !((eActor)node).getIsSplitNode())
+		    throw new RuntimeException("Node "+node.getID()
+					  +" is not a split node but still connected directly to the parent split node "+splitNode);
 	    }
 	}
 	return ret;
@@ -209,13 +217,16 @@ public class declusterStage1 implements declusterStage{
 	    while(sortedImmediateSuccessors.size()>=2){
 	    	//Put the cut arcs at the correct place
 		//Get the real-children (the cActors connected to immediate successors)
+		//FIXME: The loops below seem to be incorrect
 		eActor eChild1 = null, eChild2=null;
 		do{
 		    eChild1 = sortedImmediateSuccessors.pop();
 		}while(eChild1.getAttr("declustered")!=null && sortedImmediateSuccessors.size()>=2);
 		do{
 		    eChild2 = sortedImmediateSuccessors.pop();
-		}while(eChild1.getAttr("declustered")!=null && sortedImmediateSuccessors.size()>=2);
+		}while(eChild2.getAttr("declustered")!=null && sortedImmediateSuccessors.size()>=2);
+		//FIXME: It is possible that there is only one child, because the second is a 
+		//splitNode
 		//Make a check here
 		if(eChild1.getIsSplitNode() || eChild2.getIsSplitNode())
 		    throw new RuntimeException("Danger Will Robinson: splitNodes "+eChild1.getID()+" or "+eChild2.getID()+
@@ -445,7 +456,7 @@ public class declusterStage1 implements declusterStage{
     }
     private static long getBestCutArcsTime(eActor graph, eActor sNode, Stack<cActor> ret){
 	long bestTime = 0;
-	//Now you have consider all the possible arcs that can be cut in
+	//Now you have to consider all the possible arcs that can be cut in
 	//this circular graph.
 	//Do a multiple DFT
 	for(int r=0;r<sNode.getConnectionCount();++r){
@@ -455,11 +466,8 @@ public class declusterStage1 implements declusterStage{
 		Actor node2= null;
 		int c=2;
 		do{
-		    if(c == 2){
-			ret.clear();
-			ret.push((cActor)node);
-			ret.push((cActor)node2);
-		    }
+		    // if(c == 2){
+		    // }
 		    counter +=c;
 		    node2 = getSecondArc(node);
 		    if(node2==node) {break;}
@@ -490,8 +498,12 @@ public class declusterStage1 implements declusterStage{
 			}
 			// bestTime = bestTime<=temp?bestTime:temp;
 		    }
-		    else
+		    else{
 			bestTime = temp;
+			ret.clear();
+			ret.push((cActor)node);
+			ret.push((cActor)node2);
+		    }
 		    // System.out.println("temp1: "+temp1+", temp2: "+temp2+","+node.getID()+","+node2.getID()+","+bestTime);
 		}while(true);
 		//Now call myself tail recursively
@@ -504,6 +516,7 @@ public class declusterStage1 implements declusterStage{
 			    return bestTime;
 			else{
 			    Stack<cActor> stepe = new Stack<cActor>();
+			    // System.out.println(ret.get(0).getID()+","+ret.get(1).getID()+","+bestTime);
 			    long tepe = getBestCutArcsTime(graph,node1,stepe);
 			    if(bestTime>tepe){
 				ret.clear();
@@ -648,8 +661,6 @@ public class declusterStage1 implements declusterStage{
 	ArrayList<ArrayList> allocs = new ArrayList<ArrayList>(10);
 	long shortestMakeSpan = startDeclustering(mainGraph,origGraph,time,allocs,levels,p,time);
 	System.out.println("shortestMakeSpan: "+shortestMakeSpan);
-
-
     }
 
     private static long startDeclustering(streamGraph mainGraph, streamGraph origGraph, long currMakeSpan,
@@ -776,7 +787,6 @@ public class declusterStage1 implements declusterStage{
 	int counter = 0;
 	while(sortedClusterList.size()>1){
 	    streamGraph me = sortedClusterList.remove(0);
-	    // System.out.println(me.getID());
 	    streamGraph pCluster = getPairingCluster(me,sortedClusterList,cutArcs);
 	    // System.out.println(pCluster.getID());
 	    // if(me.getParent()!=null)
@@ -870,19 +880,32 @@ public class declusterStage1 implements declusterStage{
 	    for(cActor a : myCutArcs1)
 		myCutArcs.add(a);
 	}
-	// PRINT((ArrayList<Object>)myCutArcs.clone(),'c');
-	//Get the source and target nodes of this cutArcs
-	ArrayList<eActor> sourceAndTargets = getSourceAndTargetNodes(myCutArcs,cutArcs);
-	// PRINT((ArrayList<Object>)sourceAndTargets.clone(),'e');
-	//Get the cluster that these source and targets nodes are in
-	ArrayList<streamGraph> clusters = getContainingClusters(sortedClusterList,sourceAndTargets);
-	// PRINT((ArrayList<Object>)clusters.clone(),'s');
-	//Get the smallest of these clusters
-	//clusters can contain a heirarchical graph
-	Stack<streamGraph> sCluster = sortClusters(clusters);
-	//Remove this cluster from the sortedClusterList
-	streamGraph smallestPairingCluster = sCluster.remove(0);
-	sortedClusterList.remove(smallestPairingCluster);
+	streamGraph smallestPairingCluster = null;
+	//Only if there are cut arcs in this cluster graph do you need
+	//to do any of this.
+	if(!myCutArcs.isEmpty()){
+	    // PRINT((ArrayList<Object>)myCutArcs.clone(),'c');
+	    //Get the source and target nodes of this cutArcs
+	    ArrayList<eActor> sourceAndTargets = getSourceAndTargetNodes(myCutArcs,cutArcs);
+	    // PRINT((ArrayList<Object>)sourceAndTargets.clone(),'e');
+	    //Get the cluster that these source and targets nodes are in
+	    ArrayList<streamGraph> clusters = getContainingClusters(sortedClusterList,sourceAndTargets);
+	    // PRINT((ArrayList<Object>)clusters.clone(),'s');
+	    //Get the smallest of these clusters
+	    //clusters can contain a heirarchical graph
+	    // System.out.println(clusters.size());
+	    Stack<streamGraph> sCluster = sortClusters(clusters);
+	    //Remove this cluster from the sortedClusterList
+	    smallestPairingCluster = sCluster.remove(0);
+	    sortedClusterList.remove(smallestPairingCluster);
+	}
+	else{
+	    /**@bug This is a gross hack (maybe!!), because we are just
+	     * piscking one cluster out of many that this cluster might
+	     * be attached to*/
+	    //Just pick the first cluster in the sortedClusterList
+	    smallestPairingCluster = sortedClusterList.remove(0);
+	}
 
 	//Make a new node in a new Graph called the heirarchical cluster
 	//graph with these two clusters as children

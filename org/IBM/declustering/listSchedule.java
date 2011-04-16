@@ -34,6 +34,8 @@ public final class listSchedule {
     }
 
     public static long schedule() throws Exception{
+	//DEBUG
+	// System.out.println("!!!!Start scheduling!!!");
 	long makeSpan = 0;
 
 	//Get the timings for all actors in the graph
@@ -44,6 +46,7 @@ public final class listSchedule {
 	    timings.add(getTime(a));
 	    if(!(a.getID().equals("dummyTerminalNode")))
 		a.setAttr("correctupdateLabels",new GXLString(a.getUpdateLabels()));
+	    a.setAttr("correctguardLabels",new GXLString(a.getGuardLabels()));
 	}
 	do{
 	    //1.) Get the list of available processors
@@ -54,7 +57,8 @@ public final class listSchedule {
 	    //3.) Put the readyNodes in HLFET order (Highest Level First with Estimated Times) --> list scheduling
 	    putInHLFETOrder();
 	    ArrayList<Actor> toRemove = new ArrayList<Actor>();
-	    for(Actor a : readyNodes){
+	    for(int f=readyNodes.size()-1;f>=0;--f){
+		Actor a = readyNodes.get(f);
 		//check if a is allocated to some processor already??
 		boolean yes = false;
 		if(a.getAttr("ProcessorAlloc")!=null){
@@ -93,7 +97,7 @@ public final class listSchedule {
 		    //adjust children if this is a split node
 		    if((!a.getID().equals("dummyStartNode")) && 
 		       a.getIsSplitNode())
-			adjustSplitNodeChildren((eActor)a);
+			adjustSplitNodeChildren((eActor)a,alist);
 		}
 	    }
 	    //actually remove a from the readyNodes list
@@ -126,6 +130,12 @@ public final class listSchedule {
 	    //remove the assigned processors from the runningProcessors
 	    //list and add them to the availableProcessors list
 	    shiftProcessors(doneNodes);
+	    //DEBUG
+	    // System.out.println("Make span: "+makeSpan);
+	    // for(Actor a : runningNodes)
+	    // 	System.out.println("Running nodes: "+a.getID());
+	    // for(Actor a : doneNodes)
+	    // 	System.out.println("Done nodes: "+a.getID());
 
 	}while(!updatedLabels.isEmpty());
 
@@ -141,6 +151,14 @@ public final class listSchedule {
 	    setTime(a,timings.get(counter));
 	    if(!(a.getID().equals("dummyTerminalNode")))
 		a.setAttr("updateLabels",new GXLString(attrlabels.getValue()));
+	    attrlabels = (GXLString)a.getAttr("correctguardLabels").getValue();
+	    a.setAttr("guardLabels",new GXLString(attrlabels.getValue()));
+
+	    //Remove the doodle attributes from these guys
+	    if(a.getIsMergeNode() && !a.getID().equals("dummyTerminalNode")){
+		GXLAttr attr2 = a.getAttr("doodle");
+		a.remove(attr2);
+	    }
 	    ++counter;
 	}
 
@@ -239,33 +257,174 @@ public final class listSchedule {
 	return makeSpan;
     }
 
-    private static void adjustSplitNodeChildren(eActor splitNode){
-	String updateLabels[] = splitNode.getUpdateLabels().split(",");
+    /**
+       TODO
+
+       1.) Go to the correspondng mergeNode
+
+       2.) Get the predecessors of the corresponding merge node (Actors)
+
+       3.) Get the predecessors of these cActors (eActors).
+
+       4.) Change the update labels for the eActors to point to the guard label
+       of the first cActor.
+
+       5.) So if there are 3 cActors, the first cActor's guard label would be
+       changed to be updated by the 3 eActors updateLabels.
+
+       5.) Finally, update the updateLabels of the first and second cActor to
+       update the second and third cActors guardLabels, respectively.
+     */
+    private static void adjustSplitNodeChildren(eActor splitNode,ArrayList<Actor> nodes){
+	String updateLabels[] = ((GXLString)splitNode.getAttr("correctupdateLabels").getValue()).getValue().split(",");
 	//get the children nodes
-	ArrayList<cActor> children = new ArrayList<cActor>(4);
+	ArrayList<Actor> children = new ArrayList<Actor>(4);
+	Actor lastChild = null;
 	int counter=0;
 	for(int r=0;r<splitNode.getConnectionCount();++r){
 	    if(splitNode.getConnectionAt(r).getDirection().equals(GXL.IN)){
 		GXLEdge le1 = (GXLEdge)splitNode.getConnectionAt(r).getLocalConnection();
-		cActor node1 = (cActor)le1.getTarget();
+		Actor node1 = (Actor)le1.getTarget();
 		if(node1.getGuardLabels().equals(updateLabels[counter]) &&
 		   counter < updateLabels.length-1)
 		    children.add(node1);
+		else
+		    lastChild = node1;
 		++counter;
 	    }
 	}
-	//DEBUG
-	// for(Actor a : children)
-	//     System.out.println(a.getID());
 	//Now remove all except for the first update label from splitNode
+	/*
+	  Special stuff for multiple splitNodes attached to each other.
+	 */
+	String newUpdateLabels[] = splitNode.getUpdateLabels().split(",");
+	String diffUpdateLabels [] = new String[newUpdateLabels.length-updateLabels.length];
 	splitNode.setAttr("updateLabels",new GXLString(updateLabels[0]));
+
 	//Set the update labels for the children
 	counter=1;
-	for(cActor c : children){
-	    c.setUpdateLabels(updateLabels[counter]);
+	String toUpdate="";
+	for(Actor c : children){
+	    //update only the next communication Node
+	    toUpdate += c.getUpdateLabels();
+	    if(counter <= children.size()-1)
+		toUpdate +=",";
+	    c.setAttr("updateLabels",new GXLString(updateLabels[counter]));
+	    // c.setUpdateLabels(updateLabels[counter]);
 	    ++counter;
 	    //DEBUG
 	    // System.out.println(c.getUpdateLabels());
+	}
+	//DEBUG
+	// System.out.println(splitNode.getID()+":::"+splitNode.getUpdateLabels());
+	// for(Actor a : children)
+	//     System.out.println(a.getID()+":::"+a.getUpdateLabels());
+	lastChild.setUpdateLabels(toUpdate); //add it to the lastChild
+	//Get the difference between the new and old updateLabels
+	for(int y=updateLabels.length;y<newUpdateLabels.length;++y)
+	    lastChild.setUpdateLabels(newUpdateLabels[y]);
+	//DEBUG
+	// System.out.println(lastChild.getID()+"::::"+lastChild.getUpdateLabels());
+
+	//Now do the changes for the corresponding mergeNode
+	//Get the pointer to the mergeNode
+	Actor mNode = null;
+	for(Actor node : nodes){
+	    if(node.getID().equals(splitNode.getMergeNode())){
+		mNode = node;
+		break;
+	    }
+	}
+	if(mNode.getAttr("doodle")!=null)
+	    return;
+	mNode.setAttr("doodle",new GXLString("true"));
+
+	//Only continue if this mergenode has not been doodles yet!!
+	ArrayList<cActor> sourcecActors = new ArrayList<cActor>(5);
+	for(int e=0;e<mNode.getConnectionCount();++e){
+	    if(mNode.getConnectionAt(e).getDirection().equals(GXL.OUT)){
+		GXLEdge le = (GXLEdge)mNode.getConnectionAt(e).getLocalConnection();
+		Actor node = (Actor)le.getSource();
+		//TODO
+		/*
+		  1.) Do a recursive DFT upwards until one gets the required cActors.
+		 */
+		if(le.getSource() instanceof cActor)
+		    sourcecActors.add((cActor)le.getSource());
+		else if(le.getSource() instanceof eActor && ((eActor)le.getSource()).getIsMergeNode()){
+		    getcActors((eActor)le.getSource(),sourcecActors);
+		}
+		else if(le.getSource() instanceof eActor && !((eActor)le.getSource()).getIsMergeNode())
+		    throw new RuntimeException();
+	    }
+	}
+
+	//DEBUG
+	// System.out.println(mNode.getID());
+
+	//Now get the corresponding eActors
+	ArrayList<eActor> sourceeActors = new ArrayList<eActor>(sourcecActors.size());
+	for(cActor c : sourcecActors){
+	    int ccounter=0;
+	    for(int e=0;e<c.getConnectionCount();++e){
+		if(c.getConnectionAt(e).getDirection().equals(GXL.OUT)){
+		    if(ccounter > 0) throw new RuntimeException("Communication node: "+c.getID()+" has more than one source actor");
+		    GXLEdge le = (GXLEdge)c.getConnectionAt(e).getLocalConnection();
+		    sourceeActors.add((eActor)le.getSource()); //FIXME: This line can possibly give a classCastException.
+		    ++ccounter;
+		}
+	    }
+	}
+
+	//DEBUG
+	// System.out.println(sourceeActors.size());
+
+	//The updateLabels
+	String uLabels[] = new String[sourceeActors.size()-1];
+	String firstcActorGuardLabels[] = new String[sourceeActors.size()-1];
+	int mcounter=0;
+	for(int e=1;e<sourceeActors.size();++e){
+	    //DEBUG
+	    // System.out.println("orig :"+sourceeActors.get(e).getID()+":::"+sourceeActors.get(e).getUpdateLabels());
+
+	    uLabels[mcounter] = sourceeActors.get(e).getUpdateLabels();
+	    //update the updatelabels for these actors
+	    sourceeActors.get(e).setAttr("updateLabels",new GXLString(sourceeActors.get(0).getUpdateLabels()+e));
+	    firstcActorGuardLabels[mcounter] = sourceeActors.get(0).getUpdateLabels()+e;
+
+	    //DEBUG
+	    // System.out.println("new :"+sourceeActors.get(e).getID()+":::"+sourceeActors.get(e).getUpdateLabels());
+	    ++mcounter;
+	}
+	//DEBUG
+	// System.out.println("orig :"+sourcecActors.get(0).getID()+":::"+sourcecActors.get(0).getGuardLabels());
+	for(String s : firstcActorGuardLabels)
+	    sourcecActors.get(0).setGuardLabels(s);
+	//DEBUG
+	// System.out.println("new :"+sourcecActors.get(0).getID()+":::"+sourcecActors.get(0).getGuardLabels());
+
+	//Now finally set the updates for all cActors in order
+	for(int e=0;e<sourcecActors.size()-1;++e){
+	    //DEBUG
+	    // System.out.println("orig :"+sourcecActors.get(e).getID()+":::"+sourcecActors.get(e).getUpdateLabels());
+
+	    sourcecActors.get(e).setUpdateLabels(uLabels[e]);
+
+	    //DEBUG
+	    // System.out.println("new :"+sourcecActors.get(e).getID()+":::"+sourcecActors.get(e).getUpdateLabels());
+	}
+    }
+
+    private static void getcActors(eActor c, ArrayList<cActor> list){
+	c.setAttr("doodle",new GXLString("true"));
+	for(int e=0;e<c.getConnectionCount();++e){
+	    if(c.getConnectionAt(e).getDirection().equals(GXL.OUT)){
+		GXLEdge le = (GXLEdge)c.getConnectionAt(e).getLocalConnection();
+		if(le.getSource() instanceof cActor)
+		    list.add((cActor)le.getSource());
+		else if(((Actor)le.getSource()).getIsMergeNode())
+		    getcActors((eActor)le.getSource(),list);
+	    }
 	}
     }
 
@@ -291,8 +450,7 @@ public final class listSchedule {
 	//DEBUG
 	// System.out.println("*******************************");
 	// for(Actor a : readyNodes)
-	//     System.out.println(a.getID());
-
+	//     System.out.println("Ready nodes "+a.getID()+" static level "+((GXLString)a.getAttr("SL").getValue()).getValue());
     }
 
     private static ArrayList<Actor> getNodes(streamGraph g){
