@@ -19,6 +19,7 @@ public class eActor extends Actor{
 	String guardLabels = getGuardLabels();
 	String updateLabels = getUpdateLabels();
 	String gls[] = null, uls[]=null;
+	String costLabels = "";
 	if(guardLabels == null || (updateLabels==null && !getID().equals("dummyTerminalNode")))
 	    throw new RuntimeException("Node "+getID()+" has null guard or update label");
 	else{
@@ -26,6 +27,17 @@ public class eActor extends Actor{
 	    if(!getID().equals("dummyTerminalNode"))
 		uls = getSplitLabels(updateLabels,",");
 	    guardLabels = ""; updateLabels = "";
+	}
+	//Check if there is just one total_time_x86. If so, then
+	//increase it p.size() number of times.
+	String meCost = null;
+	if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode"));
+	else{
+	    String myCost[]=((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	    if(myCost.length == 1)
+		meCost=myCost[0];
+	    else if(myCost.length != p.size())
+		throw new RuntimeException("The total_time_x86 variable for node: "+getID()+" is not correctly defined");
 	}
 	for(int e=0;e<p.size();++e){
 	    String pID = p.get(e).getID();
@@ -48,7 +60,13 @@ public class eActor extends Actor{
 		    else updateLabels  += ";";
 		}
 	    }
+	    if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode"));
+	    else if(meCost!=null){
+		costLabels += meCost+";";
+	    }
 	}
+	if(meCost != null)
+	    setAttr("total_time_x86",new GXLString(costLabels));
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));
     }
@@ -70,6 +88,9 @@ public class eActor extends Actor{
 	//All other cases
 	buf.append("//Guard for execution node "+getID()+"\n");
 	String guards[] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
+	String myCosts[] = null;
+	if(!getID().equals("dummyTerminalNode"))
+	    myCosts = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
 	for(int y=0;y<guards.length;++y){
 	    //Make $ and : into _
 	    String temps = guards[y];
@@ -86,8 +107,10 @@ public class eActor extends Actor{
 	    String myCost = "0";
 	    if(getID().equals("dummyTerminalNode")) myCost="0";
 	    else if(getAttr("total_time_x86")==null && !getID().equals("dummyTerminalNode"))
-		throw new RuntimeException(getID()+" does not know how log it will take!!");
-	    else myCost=((GXLString)getAttr("total_time_x86").getValue()).getValue();
+		throw new RuntimeException(getID()+" does not know how long it will take!!");
+	    else
+		myCost = myCosts[y];
+		// myCost=((GXLString)getAttr("total_time_x86").getValue()).getValue();
 	    Actor.globalCostDeclBuild(buf,getID(),myCost); //Putting in the
 							//cost variable
 							//for this node
@@ -187,5 +210,41 @@ public class eActor extends Actor{
 	    // System.out.println("Finished building the parallel System");
 	    ++count;
 	}
+    }
+    protected void divide(Long factor){
+	if(factor == null) factor = new Long(1);
+	else if(getID().equals("dummyTerminalNode") || getID().equals("dummyStartNode")) return;
+	long div = factor.longValue();
+	String myTimes [] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	int counter=0;
+	for(String time : myTimes){
+	    Long myTime = new Long(time).longValue();
+	    if(myTime/div > 0)
+		myTime/=div;
+	    myTimes[counter]=myTime+"";
+	    ++counter;
+	}
+	String b="";
+	for(String s : myTimes)
+	    b+=s+";";
+	setAttr("total_time_x86",new GXLString(b));
+    }
+    public long getMultiProcessorTime(){
+	String tokens[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	long singleProcessorTime = (new Long(tokens[0]).longValue());
+	for(int e=1;e<tokens.length;++e){
+	    singleProcessorTime = singleProcessorTime>=(new Long(tokens[e]).longValue())?
+		singleProcessorTime:(new Long(tokens[e]).longValue());
+	}
+	return singleProcessorTime;
+    }
+    public long getSingleProcessorTime(){
+	String tokens[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	long singleProcessorTime = (new Long(tokens[0]).longValue());
+	for(int e=1;e<tokens.length;++e){
+	    singleProcessorTime = singleProcessorTime<=(new Long(tokens[e]).longValue())?
+		singleProcessorTime:(new Long(tokens[e]).longValue());
+	}
+	return singleProcessorTime;
     }
 }

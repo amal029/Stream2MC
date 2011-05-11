@@ -225,4 +225,23 @@ public class cActor extends Actor{
 	}
 	return singleProcessorTime;
     }
+
+    protected void divide(Long factor){
+	if(factor == null) factor = new Long(1);
+	long div = factor.longValue();
+	String work[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
+	int counter=0;
+	for(String s : work){
+	    long myTime = new Long(s).longValue();
+	    if(myTime/div > 0){ 
+		myTime/=div;
+		work[counter] = new String(myTime+"");
+	    }
+	    ++counter;
+	}
+	String b = "";
+	for(String s : work)
+	    b+=s+";";
+	setAttr("work_x86",new GXLString(b));
+    }
 }

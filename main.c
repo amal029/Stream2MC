@@ -10,7 +10,7 @@
 
    This function wraps the whole Java virtual machine invocation and
    corresponding optional arguments
- */
+*/
 #define VERSION "0.1"
 
 void
@@ -20,17 +20,24 @@ version(const char *v){
 
 void
 help(void){
-  fprintf(stderr,"Usage: stream2mc -x <max-java-memory> [will be used as mega-bytes] -f <gxl-file-name> [each file is given as a -f argument]\n");
-  fprintf(stderr,"-h for help\n");
-  fprintf(stderr,"-v for version\n");
+  fprintf(stderr,
+	  "Usage: stream2mc -d <div-factor> \n -x <max-java-memory> [will be used as mega-bytes] \n -f <gxl-file-name> [each file is given as a -f argument]\n"
+	  );
+  fprintf(stderr," -h for help\n");
+  fprintf(stderr," -v for version\n");
   exit(EXIT_FAILURE);
 }
 
 const char *
-getCommand(const char *gxlFile,const char* x){
+getCommand(const char *gxlFile,const char* x,const long divFactor){
   char command[2556];
-  snprintf(command,2555,"java %s -cp %s org/IBM/createMcModel -DcompilerStageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 %s\n",x,getenv("CLASSPATH"),gxlFile);
+  snprintf(command,2555,"java %s -cp %s org/IBM/createMcModel -DcompilerStageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 -DdivFactor=%ld %s\n",x,getenv("CLASSPATH"),divFactor,gxlFile);
   return strdup(command);
+}
+
+unsigned long
+getdivFactor(const char *arg){
+  return ((unsigned long)atol(arg));
 }
 
 int
@@ -39,7 +46,8 @@ main(int argc, char *argv[]){
   char *x = "-Xmx1G";
   char *mx,*gxlFile;
   unsigned char optt = 0;
-  while((opt = getopt(argc,argv,"vhx:f:"))!=-1){
+  unsigned long divFactor = 1;
+  while((opt = getopt(argc,argv,"d:vhx:f:"))!=-1){
     optt=1;
     switch(opt){
     case 'v':
@@ -47,6 +55,9 @@ main(int argc, char *argv[]){
       break;
     case 'h':
       help();
+      break;
+    case 'd':
+      divFactor = getdivFactor(optarg);
       break;
     case 'x':
       mx = strdup(optarg);
@@ -61,12 +72,12 @@ main(int argc, char *argv[]){
       if(gxlFile == NULL)
 	help();
       //Make the command string
-      const char *command = getCommand(gxlFile,x);
+      const char *command = getCommand(gxlFile,x,divFactor);
       if(system(command)==-1)
 	exit(EXIT_FAILURE);
       else printf ("%s\n",gxlFile);
       while((gxlFile = strtok(NULL," "))!=NULL){
-	const char *command = getCommand(gxlFile,x);
+	const char *command = getCommand(gxlFile,x,divFactor);
 	if(system(command)==-1)
 	  exit(EXIT_FAILURE);
 	else printf ("%s\n",gxlFile);

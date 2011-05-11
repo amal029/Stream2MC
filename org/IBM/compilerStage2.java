@@ -27,8 +27,9 @@ public class compilerStage2 implements compilerStage{
        @date Sat Mar 12 14:30:07 GMT 2011
 
        This is the second most important algorithm in the complete
-       system.  This algorithm identifies the nodes that can be possibly run in
-       parallel, provided they are allocated to different processors.
+       system. This algorithm identifies the nodes that can be possibly
+       run in parallel, provided they are allocated to different
+       processors.
 
 
        @bug This is a very very expensive algoritm

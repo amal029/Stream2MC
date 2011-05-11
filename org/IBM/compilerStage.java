@@ -8,6 +8,6 @@ import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
 
-public abstract interface compilerStage {
+public interface compilerStage {
     public String [] applyMethod(String args[],String fNames[]);
 }

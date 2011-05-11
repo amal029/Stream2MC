@@ -65,7 +65,8 @@ public class declusterStage1 implements declusterStage{
 	    }
 	    //Adding to time
 	    if(lNode.getAttr("total_time_x86")!=null)
-		temp = new Long(((GXLString)lNode.getAttr("total_time_x86").getValue()).getValue()).longValue();
+		temp = ((eActor)lNode).getMultiProcessorTime();
+		// temp = new Long(((GXLString)lNode.getAttr("total_time_x86").getValue()).getValue()).longValue();
 	    else if((lNode.getID().equals("dummyTerminalNode")) || (lNode.getID().equals("dummyStartNode"))) ;
 	    else throw new RuntimeException(lNode.getID());
 	    x+=temp;
@@ -158,7 +159,8 @@ public class declusterStage1 implements declusterStage{
 	if(node instanceof cActor)
 	    time = ((cActor)node).getSingleProcessorTime();
 	else if(node instanceof eActor)
-	    time = new Long(((GXLString)((eActor)node).getAttr("total_time_x86").getValue()).getValue()).longValue();
+	    time = ((eActor)node).getSingleProcessorTime();
+	    // time = new Long(((GXLString)((eActor)node).getAttr("total_time_x86").getValue()).getValue()).longValue();
 	if(node.getID().equals(untilHere)){
 	    if(mergeNode == null){
 		mergeNode = (eActor)node;
@@ -332,7 +334,8 @@ public class declusterStage1 implements declusterStage{
 	if(node instanceof eActor){
 	    if(node.getID().equals("dummyTerminalNode") || node.getID().equals("dummyStartNode"));
 	    else{
-		execTime = new Long(((GXLString)((eActor)node).getAttr("total_time_x86").getValue()).getValue()).longValue();
+		execTime = ((eActor)node).getMultiProcessorTime();
+		// execTime = new Long(((GXLString)((eActor)node).getAttr("total_time_x86").getValue()).getValue()).longValue();
 	    }
 	    graph.add(new eActor(node));
 	}
@@ -768,7 +771,8 @@ public class declusterStage1 implements declusterStage{
 	if(sNode instanceof eActor){
 	    if(sNode.getID().equals("dummyTerminalNode") || sNode.getID().equals("dummyStartNode"));
 	    else
-		time = new Long(((GXLString)((eActor)sNode).getAttr("total_time_x86").getValue()).getValue()).longValue();
+		// time = new Long(((GXLString)((eActor)sNode).getAttr("total_time_x86").getValue()).getValue()).longValue();
+		time = ((eActor)sNode).getSingleProcessorTime();
 	}
 	else if(sNode instanceof cActor)
 	    time = ((cActor)sNode).getSingleProcessorTime();

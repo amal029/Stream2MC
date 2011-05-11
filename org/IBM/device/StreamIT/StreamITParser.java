@@ -253,7 +253,7 @@ public class StreamITParser {
 	}
 	public HashMap<String,String> parse() throws FileNotFoundException, IOException{
 	    BufferedReader  br = new BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(f))));
-	    br.readLine(); //First one is just waisted as such
+	    br.readLine(); //First one is just wasted as such
 	    String str = null;
 	    HashMap<String,String> map = new HashMap<String,String>();
 	    while((str = br.readLine()) != null){

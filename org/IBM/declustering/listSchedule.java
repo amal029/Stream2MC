@@ -220,7 +220,8 @@ public final class listSchedule {
 	if(a.iseActor()){
 	    if(a.getID().equals("dummyTerminalNode") || a.getID().equals("dummyStartNode")) ;
 	    else
-		time1 = new Long(((GXLString)((eActor)a).getAttr("total_time_x86").getValue()).getValue()).longValue();
+		time1 = ((eActor)a).getMultiProcessorTime();
+		// time1 = new Long(((GXLString)((eActor)a).getAttr("total_time_x86").getValue()).getValue()).longValue();
 	}
 	else if(a.iscActor())
 	    time1 = ((cActor)a).getMultiProcessorTime();
@@ -274,7 +275,7 @@ public final class listSchedule {
 
        5.) Finally, update the updateLabels of the first and second cActor to
        update the second and third cActors guardLabels, respectively.
-     */
+    */
     private static void adjustSplitNodeChildren(eActor splitNode,ArrayList<Actor> nodes){
 	String updateLabels[] = ((GXLString)splitNode.getAttr("correctupdateLabels").getValue()).getValue().split(",");
 	//get the children nodes
@@ -296,7 +297,7 @@ public final class listSchedule {
 	//Now remove all except for the first update label from splitNode
 	/*
 	  Special stuff for multiple splitNodes attached to each other.
-	 */
+	*/
 	String newUpdateLabels[] = splitNode.getUpdateLabels().split(",");
 	String diffUpdateLabels [] = new String[newUpdateLabels.length-updateLabels.length];
 	splitNode.setAttr("updateLabels",new GXLString(updateLabels[0]));
@@ -348,7 +349,7 @@ public final class listSchedule {
 		//TODO
 		/*
 		  1.) Do a recursive DFT upwards until one gets the required cActors.
-		 */
+		*/
 		if(le.getSource() instanceof cActor)
 		    sourcecActors.add((cActor)le.getSource());
 		else if(le.getSource() instanceof eActor && ((eActor)le.getSource()).getIsMergeNode()){
@@ -463,7 +464,7 @@ public final class listSchedule {
        @bug This method can be made much more speedier, by just getting
        the nodes that are attached to the currently running Node and not
        looking at the complete graph nodes each and every time.
-     */
+    */
     private static void getReadyNodes(ArrayList<Actor> nodes){
 	readyNodes.clear();
 	for(Actor a : nodes){

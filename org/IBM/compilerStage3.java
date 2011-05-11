@@ -9,6 +9,7 @@ import java.util.*;
 import org.xml.sax.*;
 public class compilerStage3 implements compilerStage{
     public compilerStage3 () {}
+    public Long divFactor; 
     //The cluster architecture parser being invoked
     private static ArrayList<ArrayList> pArchParser(File pArch) throws Exception{
 	ArrayList<GXLNode> processors = new ArrayList<GXLNode>();
@@ -69,6 +70,7 @@ public class compilerStage3 implements compilerStage{
 	clearVisited(sNode);
     }
     private static void alloc(Actor sNode, ArrayList<GXLNode> processors, ArrayList<GXLEdge> connections)throws Exception{
+	if(sNode.ifVisited()) return;
 	sNode.updateLabels(processors,connections);
 	sNode.setVisited();
 	//Start updating the guards and update labels as: label$processor_num;label$processor_num
@@ -103,7 +105,12 @@ public class compilerStage3 implements compilerStage{
 		//Stage-3(A)
 		System.out.print(".......");
 		allocProcessorGuardsAndUpdates(sGraph.getSourceNode());
+		//Divide the time by the div factor
 		System.out.print(".......");
+		//Divide with the division factor
+		clearVisited(sGraph.getSourceNode());
+		divide(sGraph.getSourceNode());
+		clearVisited(sGraph.getSourceNode());
 		//Write the file out onto the disk for stage3 processing
 		File f = new File(fNames[e]);
 		File dir = new File("./output");
@@ -117,5 +124,21 @@ public class compilerStage3 implements compilerStage{
     	catch(IOException e){e.printStackTrace();}
     	catch(Exception e){e.printStackTrace();}
 	return rets;
+    }
+
+    private void divide(Actor sNode){
+	if(sNode.ifVisited()) return;
+	sNode.divide(divFactor);
+	sNode.setVisited();
+	//Start updating the guards and update labels as: label$processor_num;label$processor_num
+	for(int e=0;e<sNode.getConnectionCount();++e){
+	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
+		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+		if(le.getAttr("parallelEdge")==null){
+		    Actor node = (Actor)le.getTarget();
+		    divide(node);
+		}
+	    }
+	}
     }
 }

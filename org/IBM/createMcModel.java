@@ -41,14 +41,16 @@ public class createMcModel {
 
 	//Need to put in dynamic class loading looking at the
 	try{
-	    if(args.length != 2){
-		System.out.println("Usage: org.IBM.createMcModel -DcompilerStageFiles=<abs-class-names> <gxl-file-names-to-act-on>");
+	    if(args.length!=3){
+		System.out.println("Usage: org.IBM.createMcModel -DcompilerStageFiles=<abs-class-names> -DdivFactor=<divFactor>"+
+				   "<gxl-file-names-to-act-on>");
 		System.exit(1);
 	    }
 	    //Now do processing
 	    String stageClassNames[] = getStageClassNames(args[0]);
 	    createMcModel model = new createMcModel();
 	    String a[] = null, b[] = null;
+	    Long divFactor = getdivFactor(args[1]);
 	    a = addArgs(args);
 	    //Load the compiler stages dynamically.
 
@@ -58,6 +60,9 @@ public class createMcModel {
 	    for(int e=0;e<stageClassNames.length;++e){
 		compilerStages[e] = (compilerStage)myloader.loadClass(stageClassNames[e]).newInstance();
 		applyMethod[e] = compilerStages[e].getClass().getMethod("applyMethod",new Class[]{String[].class,String[].class});
+		if(e == 2)
+		    ((compilerStage3)compilerStages[e]).getClass().getField("divFactor").set(((compilerStage3)compilerStages[e]),
+											     divFactor);
 	    }
 	    //Start the compiler stages
 	    for(int w=0;w<applyMethod.length;++w){
@@ -70,12 +75,16 @@ public class createMcModel {
 	catch(Exception e){e.printStackTrace();}
     }
     private static String[] addArgs(String args[]){
-	String a[] = new String[args.length-1];
+	String a[] = new String[args.length-2];
 	int c=0;
-	for(int e=1;e<args.length;++e){
+	for(int e=2;e<args.length;++e){
 	    a[c] = args[e];
 	    ++c;
 	}
 	return a;
+    }
+
+    private static Long getdivFactor(String arg){
+	return new Long(arg.split("=")[1]);
     }
 }

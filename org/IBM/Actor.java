@@ -393,6 +393,8 @@ public class Actor extends GXLNode{
 		}
 	    }
 	}
+	//pProcessors holds the list of processors that partner can be
+	//assigned to
 	if(pProcessors.isEmpty() && val) return; //No point going forward
 
 	if(val){
@@ -674,5 +676,9 @@ public class Actor extends GXLNode{
 	    }
 	    gb.append(";\n");
 	}
+    }
+
+    protected void divide(Long fac){
+	throw new RuntimeException();
     }
 }

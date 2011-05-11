@@ -18,14 +18,14 @@ benchmark1=../benchmarks/audiobeam.dot.gxl #works with both uppaal and decluster
 benchmark2=../benchmarks/fft.dot.gxl #works with both uppaal and declustering
 benchmark3=../benchmarks/bitonicsort.dot.gxl #works with declustering and uppaal
 benchmark4=../benchmarks/vocoder.dot.gxl #Works with both uppaal and declustering
-benchmark5=../benchmarks/serpent_full.dot.gxl #works with declustering, values out of range for uppaal.
-benchmark6=../benchmarks/tde.dot.gxl #values are out of range in uppaal, because of int types. Works with declustering
+benchmark5=../benchmarks/serpent_full.dot.gxl #works with declustering and uppaal
+benchmark6=../benchmarks/tde.dot.gxl #Works with declustering and uppaal
 benchmark7=../benchmarks/des.dot.gxl # works with uppaal, work with declustering
-benchmark8=../benchmarks/mpeg2decoder.dot.gxl # overflowing values with uppaal, works with declustering
+benchmark8=../benchmarks/mpeg2decoder.dot.gxl # uppaal and declustering both work
 
 all: compile
 
-compile: stream2mc
+compile: main
 	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
@@ -75,13 +75,13 @@ stage3: compile
 stage4: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 \
-	$(benchmark2)
+	$(benchmark1)
 
-stream2mc:
-	rm -f ./stream2mc
+main:
+	rm -f stream2mc
 	gcc -std=gnu99 -g -o stream2mc main.c
 
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	$(benchmark8)
+	-DdivFactor=1 $(benchmark1)
