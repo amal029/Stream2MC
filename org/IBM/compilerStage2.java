@@ -22,6 +22,19 @@ public class compilerStage2 implements compilerStage{
 	    }
 	}
     }
+    private static boolean hasParallelEdge(Actor sNode, Actor n2){
+	boolean ret = false;
+	for(int e=0;e<sNode.getConnectionCount();++e){
+	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
+		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+		if(le.getAttr("parallelEdge")!=null){
+		    Actor node = (Actor)le.getTarget();
+		    if(node.getID().equals(n2.getID())) {ret = true; break;}
+		}
+	    }
+	}
+	return ret;
+    }
     /**
        @author Avinash Malik
        @date Sat Mar 12 14:30:07 GMT 2011
@@ -78,10 +91,14 @@ public class compilerStage2 implements compilerStage{
 		    }
 		}
 		if(doit){
-		    GXLEdge edge = new GXLEdge(targetNode,sNode);
-		    edge.setAttr("parallelEdge",new GXLString("true"));
-		    edge.setAttr("style",new GXLString("dashed"));
-		    sGraph.add(new pRelations(edge));
+		    //Check again that a parallelEdge between the two
+		    //does not alread exist.
+		    if(!hasParallelEdge(targetNode,sNode)){
+			pRelations edge = new pRelations(targetNode.getID(),sNode.getID());
+			edge.setAttr("parallelEdge",new GXLString("true"));
+			edge.setAttr("style",new GXLString("dashed"));
+			sGraph.add(edge);
+		    }
 		}
 	    }
 	}

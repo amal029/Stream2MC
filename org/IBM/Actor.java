@@ -309,6 +309,8 @@ public class Actor extends GXLNode{
 		String temp[] = sendName.split("\\?");
 		if(temp[1].equals("PARS"))
 		    buf.append(temp[0]+" = "+temp[2]);
+		//temp[2] in PARR and PARM is wrong...it gives the
+		//senders cost instead of the receivers cost.
 		else if(temp[1].equals("PARR"))
 		    buf.append("tCost += "+temp[0]+"&gt;"+temp[2]+"?"+temp[0]+":"+temp[2]);
 		else if(temp[1].equals("PARM"))
@@ -376,8 +378,11 @@ public class Actor extends GXLNode{
 	    guards = removeRepetition(guards);
 	    //Now check with list.size()-1, if it possible to fit myself in there
 	    String currAlloc[] = list.get(list.size()-1).split("-");
-	    for(int r=0;r<currAlloc.length;++r)
+	    String currNames[] = list.get(list.size()-1).split("-");
+	    for(int r=0;r<currAlloc.length;++r){
 		currAlloc[r] = currAlloc[r].split("_")[1];
+		currNames[r] = currNames[r].split("_")[0];
+	    }
 	    boolean add = true;
 	    int y=0;
 	    for(;y<guards.length;++y){
@@ -392,6 +397,13 @@ public class Actor extends GXLNode{
 		    pProcessors.add(guards[y]);
 		}
 	    }
+	    if(sNode.isSpecialFusedActor()){
+		T: for(String name : sNode.getFusedActorNames()){
+		    for(String t : currNames){
+			if(t.equals(name)){pProcessors.clear(); break T;}
+		    }
+		}
+	    }
 	}
 	//pProcessors holds the list of processors that partner can be
 	//assigned to
@@ -400,6 +412,9 @@ public class Actor extends GXLNode{
 	if(val){
 	    int addPointer = list.size();
 	    for(int y=0;y<pProcessors.size();++y){
+		//Note this can be added if and only if...the fused
+		//actor does not contain the node that has already been
+		//attached.
 		list.add(list.get(addPointer-1)+"-"+sNode.getID()+"_"+pProcessors.get(y));
 		// list.add(list.get(list.size()-1)+"-"+sNode.getID()+"_"+pProcessors.get(y));
 		// This is pretty much the tail recursion
@@ -463,7 +478,6 @@ public class Actor extends GXLNode{
 	//Remove repition from the guards
 	guards= removeRepetition(guards);
 	for(int w=0;w<guards.length;++w){
-	    // System.out.println("Building the parallel arrayList for node "+getID()+" processor "+w);
 	    ArrayList<String> nIDAndProcessors= new ArrayList<String>();
 	    nIDAndProcessors.add(getID()+"_"+guards[w]);
 	    extract(this,nIDAndProcessors,false);
@@ -513,7 +527,7 @@ public class Actor extends GXLNode{
     	return ret.toArray(p);
     }
     private HashMap<String,Actor> pNodes = new HashMap<String,Actor>();
-    private void buildSourceTemplate(StringBuilder tb, String source, String dest, String chanName, String sendName,
+    private void buildSourceTemplate(StringBuilder gb, StringBuilder tb, String source, String dest, String chanName, String sendName,
 				     int r, int count, String osource, CHOICE C){
 
 	 //I need to find the guards and
@@ -538,17 +552,42 @@ public class Actor extends GXLNode{
 	    sNode = pNodes.get(osource.split("_")[0]);
 	}
 
-	// Find the guards and updates that this
-	//source actor needs
 	String guards [] = ((GXLString)sNode.getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
 	String updates [] = ((GXLString)sNode.getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
+
+	//Special case of adding costs, if this is a fusedActor Node
+	if(sNode.isFusedActor() && !sNode.addedFusedActor){
+	    gb.append("//Guard for fusedActor node "+sNode.getID()+"\n");
+	    String myCosts[] = null;
+	    if(!sNode.getID().equals("dummyTerminalNode"))
+		myCosts = ((GXLString)sNode.getAttr("total_time_x86").getValue()).getValue().split(";");
+	    for(int y=0;y<guards.length;++y){
+		String myCost = "0";
+		if(sNode.getID().equals("dummyTerminalNode")) myCost="0";
+		else if(sNode.getAttr("total_time_x86")==null && !sNode.getID().equals("dummyTerminalNode"))
+		    throw new RuntimeException(sNode.getID()+" does not know how long it will take!!");
+		else
+		    myCost = myCosts[y];
+		// myCost=((GXLString)getAttr("total_time_x86").getValue()).getValue();
+		Actor.globalCostDeclBuild(gb,sNode.getID(),myCost); //Putting in the
+		//cost variable
+		//for this node
+	    }
+	    sNode.addedFusedActor=true;
+	    Actor.countS =1;
+	}
+
+	// Find the guards and updates that this
+	//source actor needs
 	if(guards.length != updates.length) throw new RuntimeException();
 	ArrayList<String>gguards = new ArrayList<String>();
 	ArrayList<String> gupdates = new ArrayList<String>();
 	ArrayList<Integer> gnums = new ArrayList<Integer>();
+	int wmain=0;
 	for(int w=0;w<guards.length;++w){
 	    String temp = guards[w].split(",")[0].split("\\$")[1];
 	    if(temp.equals(osource.split("_")[1])){
+		wmain=w;
 		gguards.add(guards[w]); gnums.add(w);
 		gupdates.add(updates[w]);
 	    }
@@ -558,15 +597,15 @@ public class Actor extends GXLNode{
 	//know, which guards and update labels are there
 	for(int w=0;w<gguards.size();++w){
 	    //Making the template for the source node
-	    tb.append("<!-- template for execution node "+source+"_"+r+"_"+(count+(++mCount))+"-->\n");
+	    tb.append("<!-- template for execution node "+source+"_"+(dest.split("_")[0])+"_"+r+"_"+(count+(++mCount+1))+"-->\n");
 	    tb.append("<template>\n");
 	    //Give this god-damn thing a name
-	    tb.append("<name>"+source+"_"+r+"_"+(count+(mCount))+"</name>\n");
+	    tb.append("<name>"+source+"_"+(dest.split("_")[0])+"_"+r+"_"+(count+(mCount+1))+"</name>\n");
 	    //Put the declarations
 	    tb.append("<declaration/>\n");// This does not have any declaration
-	    //End the declaration
+	    //End the declaration 
 	    transBuildPar(tb,getID(),gguards.get(w).split(","),gupdates.get(w).split(","),C,false,
-			  chanName,sendName,("C"+getID()+(w+1)));
+			  chanName,sendName,("C"+osource.split("_")[0]+(wmain+1)));
 	    //End the template declaration
 	    tb.append("</template>\n");
 	}
@@ -575,10 +614,15 @@ public class Actor extends GXLNode{
 	//Now just make the names here
 	for(int r=0;r<list.size();++r){
 	    String temp[] = list.get(r).split("-");
+	    String dest=null;
 	    for(int e=0;e<temp.length;++e){
 		String source = temp[e];
 		String osource = temp[e];
 		//First get all the parallel actors.
+		if(e < temp.length-1){
+		    dest = temp[e+1];
+		    dest = dest.replace(':','_');
+		}
 		Actor sNode = null;
 		if(pNodes.isEmpty())
 		    pNodes = getParallelActors();
@@ -606,8 +650,9 @@ public class Actor extends GXLNode{
 		//There is a loop here, because of communication actors. Now I
 		//know, which guards and update labels are there
 		for(int w=0;w<gguards.size();++w){
-		    sb.append("S"+source+"_"+r+"_"+(count+(++mCount2))+"="+source+"_"+r+"_"+(count+(mCount2))+"();\n");
-		    names+=",S"+source+"_"+r+"_"+(count+(mCount2));
+		    sb.append("S"+source+"_"+(dest.split("_")[0])+"_"+r+"_"+
+			      (count+(++mCount2+1))+"="+source+"_"+(dest.split("_")[0])+"_"+r+"_"+(count+(mCount2+1))+"();\n");
+		    names+=",S"+source+"_"+(dest.split("_")[0])+"_"+r+"_"+(count+(mCount2+1));
 		}
 	    }
 	    if(r % 10000 == 0){
@@ -615,7 +660,9 @@ public class Actor extends GXLNode{
 	    }
 	}
     }
-    protected void buildParallelTemplate(StringBuilder tb, ArrayList<String> list, int count){
+    protected void buildParallelTemplate(StringBuilder gb, 
+					 StringBuilder tb, 
+					 ArrayList<String> list, int count){
 	//Build the template first
 	for(int r=0;r<list.size();++r){
 	    String temp[] = list.get(r).split("-");
@@ -635,15 +682,16 @@ public class Actor extends GXLNode{
 		if(e == 0){
 		    sendName = "send_"+source+"_"+dest+"_"+r+"_"+count;
 		    //Every node needs a separate template
-		    buildSourceTemplate(tb,source,dest,chanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARS"));
+		    buildSourceTemplate(gb,tb,source,dest,chanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARS"));
 		}
 		else if(0<e && e<(temp.length-1)){
 		    //Here we need to send two channel names one that is
 		    //the receiver and the other that is the sender.
-		    buildSourceTemplate(tb,source,dest,prevChanName+"?"+chanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARM"));
+		    buildSourceTemplate(gb,tb,source,dest,
+					prevChanName+"?"+chanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARM"));
 		}
 		else if(e == temp.length-1){
-		    buildSourceTemplate(tb,source,dest,prevChanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARR"));
+		    buildSourceTemplate(gb,tb,source,dest,prevChanName,sendName,r,count,osource,Actor.CHOICE.valueOf("PARR"));
 		}
 	    }
 	}
@@ -681,4 +729,23 @@ public class Actor extends GXLNode{
     protected void divide(Long fac){
 	throw new RuntimeException();
     }
+    private String fusedActorNames[] = null;
+    protected String[] getFusedActorNames(){
+	return fusedActorNames;
+    }
+    protected void setFusedActorNames(String names){
+	this.fusedActorNames = names.split(",");
+    }
+    protected boolean isSpecialFusedActor(){
+	if(fusedActorNames!=null) return true;
+	else return false;
+    }
+    private boolean isFusedActor=false;
+    protected void setFusedActor(){
+	isFusedActor = true;
+    }
+    protected boolean isFusedActor(){
+	return isFusedActor;
+    }
+    private boolean addedFusedActor = false;
 }

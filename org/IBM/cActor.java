@@ -198,7 +198,7 @@ public class cActor extends Actor{
 	int count =0;
 	for(ArrayList i : finals){
 	    buildParallelGlobal(gb,i,count);
-	    buildParallelTemplate(tb,i,count);
+	    buildParallelTemplate(gb,tb,i,count);
 	    buildParallelSystem(sb,i,count);
 	    ++count;
 	}

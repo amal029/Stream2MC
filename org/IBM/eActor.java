@@ -204,7 +204,7 @@ public class eActor extends Actor{
 	    // System.out.println("Building the parallel globals");
 	    buildParallelGlobal(gb,i,count);
 	    // System.out.println("Finished building the parallel Globals");
-	    buildParallelTemplate(tb,i,count);
+	    buildParallelTemplate(gb,tb,i,count);
 	    // System.out.println("Finished building the parallel Template");
 	    buildParallelSystem(sb,i,count);
 	    // System.out.println("Finished building the parallel System");

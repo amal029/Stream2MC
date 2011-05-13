@@ -84,4 +84,4 @@ main:
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	-DdivFactor=1 $(benchmark1)
+	-DdivFactor=1000 $(benchmark2)
