@@ -13,7 +13,7 @@ public final class iniParser{
 	File file = new File(filename);
 	this.fileName = filename;
 	if(file.exists()) {contents = readFile(file);getLatency();}
-	else throw new FileNotFoundException();
+	else throw new FileNotFoundException(file.toString());
     }
     public String getFileName(){
 	return fileName;

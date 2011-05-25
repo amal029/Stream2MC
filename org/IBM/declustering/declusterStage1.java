@@ -772,10 +772,10 @@ public class declusterStage1 implements declusterStage{
 	    if(sNode.getID().equals("dummyTerminalNode") || sNode.getID().equals("dummyStartNode"));
 	    else
 		// time = new Long(((GXLString)((eActor)sNode).getAttr("total_time_x86").getValue()).getValue()).longValue();
-		time = ((eActor)sNode).getSingleProcessorTime();
+		time = ((eActor)sNode).getMultiProcessorTime();
 	}
 	else if(sNode instanceof cActor)
-	    time = ((cActor)sNode).getSingleProcessorTime();
+	    time = ((cActor)sNode).getMultiProcessorTime();
 	for(int r=0;r<sNode.getConnectionCount();++r){
 	    if(sNode.getConnectionAt(r).getDirection().equals(GXL.IN)){
 		GXLEdge le1 = (GXLEdge)sNode.getConnectionAt(r).getLocalConnection();

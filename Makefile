@@ -14,14 +14,26 @@ SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.jav
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
 
-benchmark1=../benchmarks/audiobeam.dot.gxl #works with both uppaal and declustering
-benchmark2=../benchmarks/fft.dot.gxl #works with both uppaal and declustering
-benchmark3=../benchmarks/bitonicsort.dot.gxl #works with declustering and uppaal
-benchmark4=../benchmarks/vocoder.dot.gxl #Works with both uppaal and declustering
-benchmark5=../benchmarks/serpent_full.dot.gxl #works with declustering and uppaal
-benchmark6=../benchmarks/tde.dot.gxl #Works with declustering and uppaal
-benchmark7=../benchmarks/des.dot.gxl # works with uppaal, work with declustering
-benchmark8=../benchmarks/mpeg2decoder.dot.gxl # uppaal and declustering both work
+#2 core examples
+benchmark12=../benchmarks/2core/audiobeam.dot.gxl #works with both uppaal and declustering
+benchmark22=../benchmarks/2core/fft.dot.gxl #works with both uppaal and declustering
+benchmark32=../benchmarks/2core/bitonicsort.dot.gxl #works with declustering and uppaal
+benchmark42=../benchmarks/2core/vocoder.dot.gxl #Works with both uppaal and declustering
+benchmark52=../benchmarks/2core/serpent_full.dot.gxl #works with declustering and uppaal
+benchmark62=../benchmarks/2core/tde.dot.gxl #Works with declustering and uppaal
+benchmark72=../benchmarks/2core/des.dot.gxl # works with uppaal, work with declustering
+benchmark82=../benchmarks/2core/mpeg2decoder.dot.gxl # uppaal and declustering both work
+
+#4 core examples
+benchmark14=../benchmarks/4core/audiobeam.dot.gxl #works with both uppaal and declustering
+benchmark24=../benchmarks/4core/fft.dot.gxl #works with both uppaal and declustering
+benchmark34=../benchmarks/4core/bitonicsort.dot.gxl #works with declustering and uppaal
+benchmark44=../benchmarks/4core/vocoder.dot.gxl #Works with both uppaal and declustering
+benchmark54=../benchmarks/4core/serpent_full.dot.gxl #works with declustering and uppaal
+benchmark64=../benchmarks/4core/tde.dot.gxl #Works with declustering and uppaal
+benchmark74=../benchmarks/4core/des.dot.gxl # works with uppaal, work with declustering
+benchmark84=../benchmarks/4core/mpeg2decoder.dot.gxl # uppaal and declustering both work
+
 
 all: compile
 
@@ -29,7 +41,7 @@ compile: main
 	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
-	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
+	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
 	gxl2dot pArch.gxl -o pArch$(HN).dot
 
 arch2:
@@ -84,4 +96,4 @@ main:
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	-DdivFactor=1000 $(benchmark2)
+	-DdivFactor=1 $(benchmark34)

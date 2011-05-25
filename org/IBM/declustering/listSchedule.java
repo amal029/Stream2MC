@@ -120,11 +120,13 @@ public final class listSchedule {
 		runningNodes.remove(a);
 
 	    //Now decrement the cost of the still runningNodes by minCost
+	    int re=0;
 	    for(Actor a : runningNodes){
-		long aTime = getTime(a);
+		long aTime = getTime(a,runningProcessors.get(re));
 		aTime -= minCost;
 		//Change the aTime in the nodes
 		setTime(a,aTime);
+		++re;
 	    }
 
 	    //remove the assigned processors from the runningProcessors
@@ -215,6 +217,19 @@ public final class listSchedule {
 	    a.setAttr("work_x86",new GXLString(""+time));
 	}
     }
+    private static long getTime(Actor a,GXLNode processor){
+	long time1 = 0;
+	if(a.iseActor()){
+	    if(a.getID().equals("dummyTerminalNode") || a.getID().equals("dummyStartNode")) ;
+	    else
+		time1 = ((eActor)a).getMultiProcessorTime(processor.getID());
+		// time1 = new Long(((GXLString)((eActor)a).getAttr("total_time_x86").getValue()).getValue()).longValue();
+	}
+	else if(a.iscActor())
+	    time1 = ((cActor)a).getMultiProcessorTime(processor.getID());
+	else throw new RuntimeException("Node "+a.getID()+" is of unknown type");
+	return time1;
+    }
     private static long getTime(Actor a){
 	long time1 = 0;
 	if(a.iseActor()){
@@ -229,29 +244,39 @@ public final class listSchedule {
 	return time1;
     }
 
+    //runningprocessors has the processors that are being used for each
+    //node.
     private static long getMinCost(ArrayList<Actor> dNodes){
 	long makeSpan = 0;
 	ArrayList<Actor> rNodes = new ArrayList<Actor>(4);
+	ArrayList<GXLNode> newRunningProcessors = new ArrayList<GXLNode>(4);
+	if(runningProcessors.size() != runningNodes.size())
+	    throw new RuntimeException("Number of nodes and allocated processors is not the same");
+	int counter2=0;
 	for(Actor node : runningNodes){
-	    long SL1 = getTime(node);
+	    long SL1 = getTime(node,runningProcessors.get(counter2));
 	    int counter=0;
 	    for(Actor a : rNodes){
-		long SL2 = getTime(a);
+		long SL2 = getTime(a,runningProcessors.get(counter));
 		if(SL1<=SL2)
 		    break;
 		++counter;
 	    }
 	    rNodes.add(counter,node);
+	    newRunningProcessors.add(counter,runningProcessors.get(counter2));
+	    ++counter2;
 	}
 	//rNodes contains all the nodes in ascending order of work.
-	makeSpan = getTime(rNodes.get(0));
+	makeSpan = getTime(rNodes.get(0),runningProcessors.get(0));
 
 	//Now go through the rNodes list and put the equal work nodes in
-	//dNodes list
+	//dNodes list, these will be deleted
+	counter2=0;
 	while(!rNodes.isEmpty()){
 	    Actor node = rNodes.remove(0);
-	    if(getTime(node) == makeSpan)
+	    if(getTime(node,newRunningProcessors.get(counter2)) == makeSpan)
 		dNodes.add(node);
+	    ++counter2;
 	}
 
 	//Return the minimum cost

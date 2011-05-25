@@ -229,6 +229,28 @@ public class eActor extends Actor{
 	    b+=s+";";
 	setAttr("total_time_x86",new GXLString(b));
     }
+    public long getMultiProcessorTime(String processor){
+	String labs[] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
+	int index=-1;
+	int t=0;boolean there =false;
+	for(;t<labs.length;++t){
+	    String labels[] = labs[t].split(","); //for merge nodes
+	    for(int c=0;c<labels.length;++c)
+		labels[c] = labels[c].split("\\$")[1];
+	    //Now match the processor name with the labels to find the counter
+	     int counter=0;
+	    for(;counter<labels.length;++counter){
+		if(processor.equals(labels[counter])){
+		    there=true; break;
+		}
+	    }
+	    if(there){index=counter; break;}
+	}
+	if(!there) throw new RuntimeException();
+	String tokens[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	if(tokens.length == 1) return (new Long(tokens[0]).longValue());
+	return (new Long(tokens[index]).longValue());
+    }
     public long getMultiProcessorTime(){
 	String tokens[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
 	long singleProcessorTime = (new Long(tokens[0]).longValue());

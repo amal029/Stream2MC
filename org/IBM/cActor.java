@@ -207,6 +207,15 @@ public class cActor extends Actor{
     //These are the methods required for the declustering algorithm to
     //work
     // Sat Apr 9 14:07:28 IST 2011
+    public long getMultiProcessorTime(String processor){
+	String tokens[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
+	long singleProcessorTime = (new Long(tokens[0]).longValue());
+	for(int e=1;e<tokens.length;++e){
+	    singleProcessorTime = singleProcessorTime>=(new Long(tokens[e]).longValue())?
+		singleProcessorTime:(new Long(tokens[e]).longValue());
+	}
+	return singleProcessorTime;
+    }
     public long getMultiProcessorTime(){
 	String tokens[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
 	long singleProcessorTime = (new Long(tokens[0]).longValue());
