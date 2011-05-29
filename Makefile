@@ -6,10 +6,11 @@ HN=`hostname`
 TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
 DECLUSTERINGFILES=$(TOPLEVEL)/declustering
-SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.java
+ILPFILES=$(TOPLEVEL)/ILP
+SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.java $(ILPFILES)/*.java
 
 #This is a working example
-#COMPILE_FILES=../sample_stream-graph2.gxl
+COMPILE_FILES=../benchmarks/sexample.dot.gxl
 
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
@@ -49,8 +50,8 @@ arch2:
 
 clean:
 	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
-	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc $(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~
-
+	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc $(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~ \
+	$(ILPFILES)/*class $(ILPFILES)/*java~
 testini:
 	$(CR) -cp $(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
@@ -96,4 +97,9 @@ main:
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	-DdivFactor=1 $(benchmark34)
+	-DdivFactor=100 $(COMPILE_FILES)
+
+ilp: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
+	-DdivFactor=1 $(benchmark52)

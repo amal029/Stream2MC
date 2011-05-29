@@ -1,0 +1,27 @@
+min
+obj: s_ij
+
+st
+
+\ b_ix + b_iy = 1
+\ b_jx + b_jy = 1
+b_ix = 1
+b_jx = 1
+
+temp_ijx = b_ix - b_jx
+temp_jix = b_jx - b_ix
+\ temp_ijy = b_iy - b_jy
+\ temp_jiy = b_jy - b_iy
+
+temp_ijx = 0 -> s_ij = temp_ijx
+temp_jix = 0 -> s_ij = temp_ijx
+temp_ijx = 1 -> s_ij = temp_ijx
+temp_jix = 1 -> s_ij = temp_ijx
+\ temp_ijy = 0 -> s_ij = temp_ijy
+\ temp_ijy = 1 -> s_ij = temp_ijy
+
+
+bin
+b_ix b_jx s_ij
+temp_ijx temp_jix
+\ temp_ijx temp_ijy temp_jix temp_jiy
