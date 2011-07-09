@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 CC=javac
-CR=java
+CR=java -Xmx1G
 CFALGS=-Xlint -g
 HN=`hostname`
 TOPLEVEL=./org/IBM
@@ -11,6 +11,11 @@ SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.jav
 
 #This is a working example
 COMPILE_FILES=../benchmarks/sexample.dot.gxl
+
+#New tde
+tde=../benchmarks/new/tde.dot.gxl
+serpent=../benchmarks/new/serpent.dot.gxl
+bsort=../benchmarks/new/bitonicsort.dot.gxl
 
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
@@ -35,6 +40,8 @@ benchmark64=../benchmarks/4core/tde.dot.gxl #Works with declustering and uppaal
 benchmark74=../benchmarks/4core/des.dot.gxl # works with uppaal, work with declustering
 benchmark84=../benchmarks/4core/mpeg2decoder.dot.gxl # uppaal and declustering both work
 
+# CPLEX solution files
+solution12=/tmp/audiobeam.sol
 
 all: compile
 
@@ -102,4 +109,17 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark52)
+	-DdivFactor=1 $(benchmark12)
+
+ilp2: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage2 \
+	-DdivFactor=1 $(benchmark62)
+
+cplex: compile
+	$(CR) -cp $(CLASSPATH) org.IBM.ILP.cplexSolParser $(solution12)
+
+ilp3: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage3 \
+	-DdivFactor=1 $(benchmark62)

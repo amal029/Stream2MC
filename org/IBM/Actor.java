@@ -11,6 +11,13 @@ public class Actor extends GXLNode{
     private boolean visit = false;
     public boolean ifVisited(){return visit;}
     public void setVisited(boolean v){visit=v;}
+    private int currChildNum = 0;
+    public void setCurrChildNum(int num){
+	currChildNum = num;
+    }
+    public int getCurrChildNum(){
+	return currChildNum;
+    }
     protected void updateLabels(ArrayList<GXLNode> p, ArrayList<GXLEdge> c) throws Exception{
 	throw new RuntimeException();
     }
