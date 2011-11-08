@@ -4,6 +4,7 @@ import net.sourceforge.gxl.*;
 import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
+import org.IBM.stateGraph.state;
 
 
 public class eActor extends Actor{
@@ -269,4 +270,97 @@ public class eActor extends Actor{
 	}
 	return singleProcessorTime;
     }
+
+    //Should initialize this list using an ascending order of processor
+    //allocations according to the cost of running these things
+    public void initFAlloc(){
+	this.setAttr("allFAllocate",new GXLString(getFAlloc()));
+	setAttr("fAllocate",new GXLString(""));
+    }
+    
+    public void setFAllocate(String processor){
+	String temp[] = ((GXLString)getAttr("allFAllocate").getValue()).getValue().split(";");
+	if(getID().equals("dummyStartNode")){
+	    for(String s : temp){
+		fAllocate.add(s);
+		fAllocateC.add(0.0f);
+	    }
+	}
+	else{
+	    //I will get P0-P1 or also possibly P0 alone, I have to take
+	    //care of both these situations
+	    String temp2[] = processor.split("-");
+	    processor = temp2.length==1?temp2[0]:temp2[1];
+	    fAllocate.add(processor);
+	    fAllocateC.add(getCost(processor));
+	}
+    }
+    
+    
+    private String getFAlloc(){
+	String ret="";
+	String s1[] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
+	if(getID().equals("dummyStartNode"))
+	    s1 = ((GXLString)getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
+	String processors[] = new String[s1.length]; //In this case this is fine
+	for(int i=0;i<s1.length;++i)
+	    processors[i] = s1[i].split("\\$")[1].replace(':','_');
+	if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode")){
+	    //set the fallocate here itself
+	    for(String s : processors)
+		ret+=s+";";
+	    return ret;
+	}
+	//getting the costs
+	if(processors.length > 1){
+	    ArrayList<Integer> newCosts = new ArrayList<Integer>(processors.length);
+	    ArrayList<String> newprocessors = new ArrayList<String>(processors.length);
+	    String execCosts[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	    int eCosts[] = new int[execCosts.length];
+	    for(int e=0;e<execCosts.length;++e)
+		eCosts[e] = new Integer(execCosts[e]).intValue();
+	    //putting the costs in ascendig order and also the
+	    //processors i ascedig order
+	    for(int e=0;e<eCosts.length;++e){
+		boolean add=true;
+		for(int r=0;r<newCosts.size();++r){
+		    if(eCosts[e] <= newCosts.get(r)){
+			newCosts.add(r,eCosts[e]);
+			newprocessors.add(r,processors[e]);
+			add=false;
+			break;
+		    }
+		}
+		if(add){
+		    newCosts.add(eCosts[e]);
+		    newprocessors.add(processors[e]);
+		}
+	    }
+	    for(String p : newprocessors){
+		ret +=p+";";
+		String costs="";
+		for(int c : newCosts)
+		    costs+=c+";";
+		//set the total
+		setAttr("total_time_x86",new GXLString(costs));
+	    }
+	    return ret;
+	}
+	else{
+	    ret +=processors[0]+";";
+	    return ret;
+	}
+    }
+    
+    public float getCost(String processor){
+	float ret = 0;
+	String ps[] = ((GXLString)getAttr("allFAllocate").getValue()).getValue().split(";");
+	String cs[] = ((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";"); 
+	int index =0;
+	for(;index<ps.length;++index)
+	    if(ps[index].equals(processor)) break;
+	ret = new Integer(cs[index]).intValue();
+	return ret;
+    }
+    //get the parent state node that i need to connect to
 }

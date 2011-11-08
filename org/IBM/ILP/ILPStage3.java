@@ -552,7 +552,6 @@ public class ILPStage3 implements compilerStage{
     	try{
     	    HashMap<String,streamGraph> graphs = new streamGraphParser().parse(args);
 	    StringBuilder buf = new StringBuilder();
-	    File f = new File(fNames[e]);
 	    for(int e=0;e<args.length;++e){
     		streamGraph sGraph = graphs.get(args[e]);
 		//Stage-1

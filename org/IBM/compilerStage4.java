@@ -390,7 +390,7 @@ public class compilerStage4 implements compilerStage{
 		BufferedWriter out = new BufferedWriter(new FileWriter(new File("./output","__final__"+f.getName()+".xml")));
 		out.write(finalBuffer.toString());
 		out.close();
-		rets[e] = "./output/__final__"+f.getName()+".xml";
+		// rets[e] = "./output/__final__"+f.getName()+".xml";
 		System.out.print("Done Compiling");
 	    }
     	}

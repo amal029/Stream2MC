@@ -1,13 +1,16 @@
 SHELL=/bin/bash
 CC=javac
 CR=java -Xmx1G
-CFALGS=-Xlint -g
+CFALGS=-g
 HN=`hostname`
 TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
 DECLUSTERINGFILES=$(TOPLEVEL)/declustering
+HEURISTICFILE=$(TOPLEVEL)/heuristics
+STATEFILE=$(TOPLEVEL)/stateGraph
 ILPFILES=$(TOPLEVEL)/ILP
 SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.java $(ILPFILES)/*.java
+SRC+=$(HEURISTICFILE)/*.java $(STATEFILE)/*.java
 
 #This is a working example
 COMPILE_FILES=../benchmarks/sexample.dot.gxl
@@ -16,6 +19,9 @@ COMPILE_FILES=../benchmarks/sexample.dot.gxl
 tde=../benchmarks/new/tde.dot.gxl
 serpent=../benchmarks/new/serpent.dot.gxl
 bsort=../benchmarks/new/bitonicsort.dot.gxl
+mp3decoder=../benchmarks/new/mp3decoder.dot.gxl
+beamformer=../benchmarks/new/beamformer.dot.gxl
+audiobeam=../benchmarks/new/audiobeam.dot.gxl
 
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
@@ -46,21 +52,24 @@ solution12=/tmp/audiobeam.sol
 all: compile
 
 compile: main
-	$(CC) -cp $(CLASSPATH) $(CFALGS) $(SRC)
+	$(CC) -cp .:$(CLASSPATH) $(CFALGS) $(SRC)
 
 arch:
-	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
-	gxl2dot pArch.gxl -o pArch$(HN).dot
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
+	gxl2dot pArch.gxl > pArch$(HN).dot
 
 arch2:
-	$(CR) -cp $(CLASSPATH) org/IBM/createPArch amal029@localhost -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
+
+arch8:
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity amal029@infinity2 amal029@infinity3 -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
 
 clean:
 	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
 	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc $(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~ \
-	$(ILPFILES)/*class $(ILPFILES)/*java~
+	$(ILPFILES)/*class $(ILPFILES)/*java~ $(HEURISTICFILE)/*.class $(HEURISTICFILE)/*~ $(STATEFILE)/*.class $(STATEFILE)/*~
 testini:
-	$(CR) -cp $(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
+	$(CR) -cp .:$(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
 model: stage4
 
@@ -104,17 +113,17 @@ main:
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	-DdivFactor=100 $(COMPILE_FILES)
+	-DdivFactor=1 $(mp3decoder)
 
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark12)
+	-DdivFactor=1 $(benchmark32)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage2 \
-	-DdivFactor=1 $(benchmark62)
+	-DdivFactor=1 $(mp3decoder)
 
 cplex: compile
 	$(CR) -cp $(CLASSPATH) org.IBM.ILP.cplexSolParser $(solution12)
@@ -122,4 +131,8 @@ cplex: compile
 ilp3: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage3 \
-	-DdivFactor=1 $(benchmark62)
+	-DdivFactor=1 $(mp3decoder)
+heuristics: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.heuristics.stage1 -DdivFactor=1 $(COMPILE_FILES)

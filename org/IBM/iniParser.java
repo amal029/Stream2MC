@@ -72,6 +72,7 @@ public final class iniParser{
     public long getLatency(HashMap<String,Long> latencyMap, String key){
 	Long val = new Long(0);
 	Long cVal = new Long(0);
+	if(key.equals("0")) return 0;
 	if((val = latencyMap.get(key))==null)
 	    val = latencyMap.get("constant");
 	if(val.longValue() != 0) 

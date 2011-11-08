@@ -4,6 +4,7 @@ import net.sourceforge.gxl.*;
 import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
+import org.IBM.stateGraph.*;
 
 
 public class Actor extends GXLNode{
@@ -23,13 +24,13 @@ public class Actor extends GXLNode{
     }
     public void setVisited(){setVisited(true);}
     /**
-      This adds the guard labels in the form L1,L2,L3..., which is
-      basically a string, these should be converted to integers when
-      generating code for MC. A new Attribute is added if one already
-      does not exist.
-      @return void
-      @param String label to append to the GuradLabels
-     */
+       This adds the guard labels in the form L1,L2,L3..., which is
+       basically a string, these should be converted to integers when
+       generating code for MC. A new Attribute is added if one already
+       does not exist.
+       @return void
+       @param String label to append to the GuradLabels
+    */
     public void setGuardLabels(String guard){
 	String currLabels = getGuardLabels();
 	//Add a new attribute
@@ -47,7 +48,7 @@ public class Actor extends GXLNode{
        @author Avinash Malik
        @date Tue Mar  8 11:38:34 GMT 2011
        @return The guards for this actor in the form L1,L2,L3,... or null
-     */
+    */
     public String getGuardLabels(){
 	if(this.getAttr("guardLabels")==null)
 	    return null;
@@ -68,11 +69,12 @@ public class Actor extends GXLNode{
        A null may be returned by this method.
        @return The update label string with labels as L1,L2,L3,... or null
        @param void
-     */
+    */
     public String getUpdateLabels(){
 	if(this.getAttr("updateLabels")==null) return null;
 	else return ((GXLString)getAttr("updateLabels").getValue()).getValue();
     }
+    
     public void setUpdateLabels(String label){
 	String currLabels = getUpdateLabels();
 	if(currLabels==null){
@@ -85,6 +87,14 @@ public class Actor extends GXLNode{
     }
     protected String[] getSplitLabels(String labels,String split){
 	return labels.split(split);
+    }
+    public void initFAlloc(){throw new RuntimeException("FAlloc Failed" + getID());};
+    public void initCAlloc(){
+	this.setAttr("cAllocate",new GXLString(""));
+    }
+    
+    public void initPAlloc(){
+	this.setAttr("pAllocate",new GXLString(""));
     }
     protected Stack<Actor> splitStack = new Stack<Actor>();
     protected Stack<Integer> splitIndex = new Stack<Integer>();
@@ -133,8 +143,8 @@ public class Actor extends GXLNode{
 	    String s= at.getName();
 	    GXLValue t = at.getValue();
 	    /**
-	      @bug This is a very bad hack, I know that all values are String Type
-	      and hence this works. In the general case this will never work
+	       @bug This is a very bad hack, I know that all values are String Type
+	       and hence this works. In the general case this will never work
 	    */
 	    this.setAttr(s,new GXLString(((GXLString)t).getValue()));
 	    if(at.getKind()!=null)
@@ -234,9 +244,9 @@ public class Actor extends GXLNode{
     private static int c = 1;
 
     @SuppressWarnings("fallthrough")
-    protected static void transBuildPar(StringBuilder buf, String ID, String guards[], String [] updates, 
-					CHOICE C, boolean terminalNode, String chanName, String sendName,
-					String cost){
+	protected static void transBuildPar(StringBuilder buf, String ID, String guards[], String [] updates, 
+					    CHOICE C, boolean terminalNode, String chanName, String sendName,
+					    String cost){
 	buf.append("<!-- The transition system -->\n");
 	String id1 = "id"+c, id2="id"+(++c),id3=null;
 	String cName[] = chanName.split("\\?");
@@ -367,7 +377,7 @@ public class Actor extends GXLNode{
 
        This function builds the state machines for uppaal, which has
        channels.
-     */
+    */
     protected void buildParallel(StringBuilder gb, StringBuilder tb, StringBuilder sb) throws Exception {
 	throw new RuntimeException();
     }
@@ -474,7 +484,7 @@ public class Actor extends GXLNode{
        explosion.
        @author Avinash Malik
        @date Tue Mar 22 14:47:35 GMT 2011
-     */
+    */
     protected ArrayList<ArrayList> extractCompleteParallelism() throws Exception{
 	String guards [] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
 	//Now extract the possible processors that I can be assigned to
@@ -537,7 +547,7 @@ public class Actor extends GXLNode{
     private void buildSourceTemplate(StringBuilder gb, StringBuilder tb, String source, String dest, String chanName, String sendName,
 				     int r, int count, String osource, CHOICE C){
 
-	 //I need to find the guards and
+	//I need to find the guards and
 	//updates of the not just the source actor, but also the
 	//destination actor. Please note that the destination actor,
 	//might also possibly be a communication actor with same guard
@@ -755,4 +765,59 @@ public class Actor extends GXLNode{
 	return isFusedActor;
     }
     private boolean addedFusedActor = false;
+
+    public state getParentStateNode(state sNode, String processor){
+	if(getID().equals("dummyStartNode"))
+	    return sNode;
+	else{
+	    //get my parent actor
+	    Actor parent = null;
+	    for(int e=0;e<getConnectionCount();++e){
+		if(getConnectionAt(e).getDirection().equals(GXL.OUT)){
+		    GXLEdge le = (GXLEdge)getConnectionAt(e).getLocalConnection();
+		    if(le.getAttr("parallelEdge")==null){
+			//if its the join node then the final parent
+			//will be taken, which i think is fine and
+			//dandy----'cause that's how I roll
+			parent = (Actor)le.getTarget();
+		    }
+		}
+	    }
+	    //Now find the state node, that has the same name and
+	    //processor as I want
+	    return getStateNode(sNode,(parent.getID()+"-"+processor));
+	}
+    } 
+    
+    private state getStateNode(state sNode, String name){
+	state ret = null;
+	if(sNode.getID().equals(name)){
+	    ret = sNode;
+	    return ret;
+	}
+	for(int e=0;e<sNode.getConnectionCount();++e){
+	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
+		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+		if(le.getAttr("parallelEdge")==null){
+		    state node = (state)le.getTarget();
+		    ret = getStateNode(node,name);
+		}
+	    }
+	}
+	return ret;
+    }
+    protected ArrayList<String> fAllocate = new ArrayList<String>();
+    protected ArrayList<Float> fAllocateC = new ArrayList<Float>();
+    public String removeFAlloc(){
+	return fAllocate.remove(0);
+    }
+    public boolean fAllocateEmpty(){
+	return fAllocate.isEmpty();
+    }
+    public float getCost(String p){
+	throw new RuntimeException("getCost error: "+getID());
+    }
+    public void setFAllocate(String s){
+	throw new RuntimeException("setFAllocate error: "+getID());
+    }
 }

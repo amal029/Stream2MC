@@ -124,9 +124,21 @@ public class ILPStage2 implements compilerStage{
     /**
        This method adds the s declarations, i.e.,
        
-       s_ij = |b_ix - b_jy|
+       s_ij = |b_ix - b_jx|
 
        Remember: s_ij are also binary variables
+       
+       FIXME: Urgent
+       This does not work for more than 2 cores, there is some conflict,
+       which I am currently unable to understand.
+       
+       TODO: I now understand the problem. We need to change this constraint to:
+       s_ijx = |b_ix - b_jx|
+       
+       Another constraint will be:
+       s_ij = max(s_ijx), \forall x \in P
+       
+       //Done
      */
     private static ArrayList<Actor> nodes = new ArrayList<Actor>();
     private static long Mycounter=0;
@@ -146,18 +158,41 @@ public class ILPStage2 implements compilerStage{
 		//for each processor x \in pCount
 		for(int e=0;e<pCount.length;++e){
 		    buf.append("temp_s"+node.getID()+"p"+pCount[e]+Mycounter+" + temp_s"+a.getID()+"p"+pCount[e]+Mycounter+" = 1\n");
-		    buf.append("s_"+node.getID()+a.getID()+" - "+"b_"
+		    buf.append("s_"+node.getID()+a.getID()+"_"+pCount[e]+" - "+"b_"
 		    	       +node.getID()+"p"+pCount[e]+" + "+"b_"+a.getID()+"p"+pCount[e]+" >= 0\n");
-		    buf.append("s_"+node.getID()+a.getID()+" + "+"b_"
+		    buf.append("s_"+node.getID()+a.getID()+"_"+pCount[e]+" + "+"b_"
 		    	       +node.getID()+"p"+pCount[e]+" - "+"b_"+a.getID()+"p"+pCount[e]+" >= 0\n");
-		    buf.append("temp_s"+node.getID()+"p"+pCount[e]+Mycounter+" = 1 -> s_"+node.getID()+a.getID()+" - "+"b_"
+		    buf.append("temp_s"+node.getID()+"p"+pCount[e]+Mycounter+" = 1 -> s_"+node.getID()+a.getID()+"_"+pCount[e]
+			       +" - "+"b_"
 		    	       +node.getID()+"p"+pCount[e]+" + "+"b_"+a.getID()+"p"+pCount[e]+" <= 0\n");
-		    buf.append("temp_s"+a.getID()+"p"+pCount[e]+Mycounter+" = 1 -> s_"+node.getID()+a.getID()+" + "+"b_"
+		    buf.append("temp_s"+a.getID()+"p"+pCount[e]+Mycounter+" = 1 -> s_"+node.getID()+a.getID()+"_"+pCount[e]+" + "+"b_"
 		    	       +node.getID()+"p"+pCount[e]+" - "+"b_"+a.getID()+"p"+pCount[e]+" <= 0\n");
 		    //Add it to the binaries list..
 		    binaries.add("temp_s"+node.getID()+"p"+pCount[e]+Mycounter);
 		    binaries.add("temp_s"+a.getID()+"p"+pCount[e]+Mycounter);
+		    binaries.add("s_"+node.getID()+a.getID()+"_"+pCount[e]);
 		    ++Mycounter;
+		}
+		//Add the max funtion. This thing also needs an or and
+		//<=, else instead of 0, s_ij can take a value of 1,
+		//which gives wrong results.
+		long counters[] = new long[pCount.length];
+		for(int e=0;e<pCount.length;++e)
+		    buf.append("s_"+node.getID()+a.getID()+" - "+"s_"+node.getID()+a.getID()+"_"+pCount[e]+" >= 0\n");
+		for(int e=0;e<pCount.length;++e){
+		    counters[e] = Mycounter;
+		    if(e == pCount.length - 1)
+			buf.append("temp_s_max"+Mycounter+"_"+e+" = 1\n");
+		    else
+			buf.append("temp_s_max"+Mycounter+"_"+e+" + ");
+		    //Made it into a binary variable
+		    binaries.add("temp_s_max"+Mycounter+"_"+e);
+		    ++Mycounter;
+		}
+		//Now add the indicator variables
+		for(int e=0;e<counters.length;++e){
+		    buf.append("temp_s_max"+counters[e]+"_"+e+" = 1 -> s_"+node.getID()+a.getID()+
+			       " - s_"+node.getID()+a.getID()+"_"+pCount[e]+" <= 0\n");
 		}
 		binaries.add("s_"+node.getID()+a.getID());
 	    }
@@ -420,7 +455,7 @@ public class ILPStage2 implements compilerStage{
      */
 
     @SuppressWarnings("unchecked")
-    private static void addSchedulingDeclarations(Actor sNode, StringBuilder buf){
+	private static void addSchedulingDeclarations(Actor sNode, StringBuilder buf){
 	collectNodes(sNode); //I have all the nodes..
 	while(!nodes.isEmpty()){
 	    Actor node = nodes.remove(0);
@@ -703,7 +738,7 @@ public class ILPStage2 implements compilerStage{
 
        XXX
        
-       In sw pipelining all nodes need to be cosidered when performing this
+       In sw pipelining all nodes need to be considered when performing this
        latency calculation.
        
        Communication costs for nodes also needs to be included
@@ -805,8 +840,8 @@ public class ILPStage2 implements compilerStage{
 		addBinaryDeclarations(buf);
 		
 		//generals
-		buf.append("general\n");
-		buf.append("l\n");
+		// buf.append("general\n");
+		// buf.append("l\n");
 
 		//This is the end of the ILP formulation
 		buf.append("end");

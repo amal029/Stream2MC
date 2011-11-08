@@ -4,7 +4,7 @@ import net.sourceforge.gxl.*;
 import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
-
+import org.IBM.stateGraph.state;
 
 public class cActor extends Actor{
     public cActor(String id){super(id);}
@@ -252,5 +252,89 @@ public class cActor extends Actor{
 	for(String s : work)
 	    b+=s+";";
 	setAttr("work_x86",new GXLString(b));
+    }
+
+    //Should initialize this list using an ascending order of processor
+    //allocations according to the cost of running these things
+    public void initFAlloc(){
+	this.setAttr("fAllocate",new GXLString(getFAlloc()));
+	setAttr("fAllocate",new GXLString(""));
+    }
+
+    private String getFAlloc(){
+	String ret="";
+	String s1[] = ((GXLString)getAttr("__guard_labels_with_processors").getValue()).getValue().split(";");
+	String s2[] = ((GXLString)getAttr("__update_labels_with_processors").getValue()).getValue().split(";");
+	String processors[] = new String[s1.length]; //In this case this is fine
+	for(int i=0;i<s1.length;++i)
+	    processors[i] = (s1[i].split("\\$")[1].replace(':','_'))+"-"+(s2[i].split("\\$")[1].replace(':','_'));
+	if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode")){
+	    //set the fallocate here itself
+	    for(String s : processors)
+		ret+=s+";";
+	    return ret;
+	}
+	//getting the costs
+	if(processors.length > 1){
+	    ArrayList<Integer> newCosts = new ArrayList<Integer>(processors.length);
+	    ArrayList<String> newprocessors = new ArrayList<String>(processors.length);
+	    String execCosts[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";");
+	    int eCosts[] = new int[execCosts.length];
+	    for(int e=0;e<execCosts.length;++e)
+		eCosts[e] = new Integer(execCosts[e]).intValue();
+	    //putting the costs in ascendig order and also the
+	    //processors i ascedig order
+	    for(int e=0;e<eCosts.length;++e){
+		boolean add=true;
+		for(int r=0;r<newCosts.size();++r){
+		    if(eCosts[e] <= newCosts.get(r)){
+			newCosts.add(r,eCosts[e]);
+			newprocessors.add(r,processors[e]);
+			add=false;
+			break;
+		    }
+		}
+		if(add){
+		    newCosts.add(eCosts[e]);
+		    newprocessors.add(processors[e]);
+		}
+	    }
+	    for(String p : newprocessors){
+		ret +=p+";";
+		String costs="";
+		for(int c : newCosts)
+		    costs+=c+";";
+		//set the total
+		setAttr("work_x86",new GXLString(costs));
+	    }
+	    return ret;
+	}
+	else{
+	    ret +=processors[0]+";";
+	    return ret;
+	}
+    }
+
+    public float getCost(String processor){
+	float ret = 0;
+	String ps[] = ((GXLString)getAttr("allFAllocate").getValue()).getValue().split(";");
+	String cs[] = ((GXLString)getAttr("work_x86").getValue()).getValue().split(";"); 
+	int index =0;
+	for(;index<ps.length;++index)
+	    if(ps[index].equals(processor)) break;
+	ret = new Integer(cs[index]).intValue();
+	return ret;
+    }
+    
+    //Notice that two communication actors can never be directly
+    //attached to each other ever!!
+    public void setFAllocate(String processor){
+	String temp[] = ((GXLString)getAttr("allFAllocate").getValue()).getValue().split(";");
+	for(String s : temp){
+	    if(s.split("-")[0].equals(processor)){
+		fAllocate.add(s);
+		fAllocateC.add(getCost(s));
+	    }
+	}
     }
 }
