@@ -257,7 +257,7 @@ public class cActor extends Actor{
     //Should initialize this list using an ascending order of processor
     //allocations according to the cost of running these things
     public void initFAlloc(){
-	this.setAttr("fAllocate",new GXLString(getFAlloc()));
+	this.setAttr("allFAllocate",new GXLString(getFAlloc()));
 	setAttr("fAllocate",new GXLString(""));
     }
 
@@ -299,14 +299,14 @@ public class cActor extends Actor{
 		    newprocessors.add(processors[e]);
 		}
 	    }
+	    String costs="";
 	    for(String p : newprocessors){
 		ret +=p+";";
-		String costs="";
-		for(int c : newCosts)
-		    costs+=c+";";
 		//set the total
-		setAttr("work_x86",new GXLString(costs));
 	    }
+	    for(int c : newCosts)
+		costs+=c+";";
+	    setAttr("work_x86",new GXLString(costs));
 	    return ret;
 	}
 	else{
@@ -337,4 +337,5 @@ public class cActor extends Actor{
 	    }
 	}
     }
+
 }

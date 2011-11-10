@@ -90,11 +90,11 @@ public class Actor extends GXLNode{
     }
     public void initFAlloc(){throw new RuntimeException("FAlloc Failed" + getID());};
     public void initCAlloc(){
-	this.setAttr("cAllocate",new GXLString(""));
+	this.setAttr("cAllocate",new GXLString("null"));
     }
     
     public void initPAlloc(){
-	this.setAttr("pAllocate",new GXLString(""));
+	this.setAttr("pAllocate",new GXLString("null"));
     }
     protected Stack<Actor> splitStack = new Stack<Actor>();
     protected Stack<Integer> splitIndex = new Stack<Integer>();
@@ -766,7 +766,7 @@ public class Actor extends GXLNode{
     }
     private boolean addedFusedActor = false;
 
-    public state getParentStateNode(state sNode, String processor){
+    public state getParentStateNode(state sNode){
 	if(getID().equals("dummyStartNode"))
 	    return sNode;
 	else{
@@ -779,20 +779,26 @@ public class Actor extends GXLNode{
 			//if its the join node then the final parent
 			//will be taken, which i think is fine and
 			//dandy----'cause that's how I roll
-			parent = (Actor)le.getTarget();
+			parent = (Actor)le.getSource();
+			// System.out.println("getting parent: "+parent.getID());
 		    }
 		}
 	    }
 	    //Now find the state node, that has the same name and
 	    //processor as I want
-	    return getStateNode(sNode,(parent.getID()+"-"+processor));
+	    String tname = parent.getID()+"-"+((GXLString)parent.getAttr("cAllocate").getValue()).getValue();
+	    return getStateNode(sNode,tname);
 	}
-    } 
-    
-    private state getStateNode(state sNode, String name){
+    }
+
+    private state getStateNode(state sNode,String tname){
+	// System.out.println("Searching for: "+tname);
+	//This split is pretty much useless
 	state ret = null;
-	if(sNode.getID().equals(name)){
+	//Get the final processor name from the getID
+	if(sNode.getID().equals(tname)){
 	    ret = sNode;
+	    // System.out.println("Found it: "+ret);
 	    return ret;
 	}
 	for(int e=0;e<sNode.getConnectionCount();++e){
@@ -800,16 +806,36 @@ public class Actor extends GXLNode{
 		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
 		if(le.getAttr("parallelEdge")==null){
 		    state node = (state)le.getTarget();
-		    ret = getStateNode(node,name);
+		    ret = getStateNode(node,tname);
 		}
 	    }
 	}
 	return ret;
     }
+    
     protected ArrayList<String> fAllocate = new ArrayList<String>();
     protected ArrayList<Float> fAllocateC = new ArrayList<Float>();
+
+    public int getFAllocSize(){
+	return fAllocate.size();
+    }
+    
     public String removeFAlloc(){
-	return fAllocate.remove(0);
+	if(((GXLString)getAttr("cAllocate").getValue()).getValue().equals("null"))
+	    setAttr("cAllocate",new GXLString(fAllocate.remove(0)));
+	else{
+	    if(((GXLString)getAttr("pAllocate").getValue()).getValue().equals("null"))
+		setAttr("pAllocate",new GXLString(((GXLString)getAttr("cAllocate").getValue()).getValue()));
+	    else{
+		String temp = ((GXLString)getAttr("pAllocate").getValue()).getValue();
+		//P0;P1...
+		temp+=((GXLString)getAttr("cAllocate").getValue()).getValue()+";";
+		setAttr("pAllocate",new GXLString(temp));
+	    }
+	    //chage the cAllocate now
+	    setAttr("cAllocate",new GXLString(fAllocate.remove(0)));
+	}
+	return ((GXLString)getAttr("cAllocate").getValue()).getValue();
     }
     public boolean fAllocateEmpty(){
 	return fAllocate.isEmpty();

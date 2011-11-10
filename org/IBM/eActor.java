@@ -280,6 +280,7 @@ public class eActor extends Actor{
     
     public void setFAllocate(String processor){
 	String temp[] = ((GXLString)getAttr("allFAllocate").getValue()).getValue().split(";");
+	String temp2[] = ((GXLString)getAttr("pAllocate").getValue()).getValue().split(";");
 	if(getID().equals("dummyStartNode")){
 	    for(String s : temp){
 		fAllocate.add(s);
@@ -289,8 +290,8 @@ public class eActor extends Actor{
 	else{
 	    //I will get P0-P1 or also possibly P0 alone, I have to take
 	    //care of both these situations
-	    String temp2[] = processor.split("-");
-	    processor = temp2.length==1?temp2[0]:temp2[1];
+	    String temp3[] = processor.split("-");
+	    processor = temp3.length==1?temp3[0]:temp3[1];
 	    fAllocate.add(processor);
 	    fAllocateC.add(getCost(processor));
 	}
@@ -307,8 +308,12 @@ public class eActor extends Actor{
 	    processors[i] = s1[i].split("\\$")[1].replace(':','_');
 	if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode")){
 	    //set the fallocate here itself
-	    for(String s : processors)
+	    String costs ="";
+	    for(String s : processors){
 		ret+=s+";";
+		costs+="0;";
+	    }
+	    setAttr("total_time_x86",new GXLString(costs));
 	    return ret;
 	}
 	//getting the costs
@@ -336,14 +341,14 @@ public class eActor extends Actor{
 		    newprocessors.add(processors[e]);
 		}
 	    }
+	    String costs="";
 	    for(String p : newprocessors){
 		ret +=p+";";
-		String costs="";
-		for(int c : newCosts)
-		    costs+=c+";";
 		//set the total
-		setAttr("total_time_x86",new GXLString(costs));
 	    }
+	    for(int c : newCosts)
+		costs+=c+";";
+	    setAttr("total_time_x86",new GXLString(costs));
 	    return ret;
 	}
 	else{
@@ -362,5 +367,5 @@ public class eActor extends Actor{
 	ret = new Integer(cs[index]).intValue();
 	return ret;
     }
-    //get the parent state node that i need to connect to
+
 }

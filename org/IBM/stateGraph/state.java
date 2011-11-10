@@ -23,4 +23,13 @@ public class state extends GXLNode{
 	this.myCosts = myCosts;
 	this.totalCost = myCosts+cost;
     }
+    public float getCurrentCost(){
+	return totalCost;
+    }
+    public float getCost(){
+	return myCosts;
+    }
+    public void updateCurrentCost(float c){
+	totalCost = myCosts+c;
+    }
 }

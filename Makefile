@@ -133,6 +133,6 @@ ilp3: compile
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage3 \
 	-DdivFactor=1 $(mp3decoder)
 heuristics: compile
-	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
-	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
-	org.IBM.heuristics.stage1 -DdivFactor=1 $(COMPILE_FILES)
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark12)

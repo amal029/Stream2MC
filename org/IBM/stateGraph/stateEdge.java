@@ -12,7 +12,7 @@ import org.xml.sax.*;
 
 public class stateEdge extends GXLEdge{
     public stateEdge (state first, state second) {
-	super(first,second);
+	super(first.getID(),second.getID());
 	this.setDirected(true);
     }
 }
