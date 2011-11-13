@@ -7,10 +7,11 @@ TOPLEVEL=./org/IBM
 DEVICEFILES=$(TOPLEVEL)/device
 DECLUSTERINGFILES=$(TOPLEVEL)/declustering
 HEURISTICFILE=$(TOPLEVEL)/heuristics
+LIBFILES=$(TOPLEVEL)/heuristics/lib
 STATEFILE=$(TOPLEVEL)/stateGraph
 ILPFILES=$(TOPLEVEL)/ILP
 SRC=$(TOPLEVEL)/*.java $(DEVICEFILES)/StreamIT/*.java $(DECLUSTERINGFILES)/*.java $(ILPFILES)/*.java
-SRC+=$(HEURISTICFILE)/*.java $(STATEFILE)/*.java
+SRC+=$(HEURISTICFILE)/*.java $(STATEFILE)/*.java $(LIBFILES)/*.java
 
 #This is a working example
 COMPILE_FILES=../benchmarks/sexample.dot.gxl
@@ -65,9 +66,13 @@ arch8:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity amal029@infinity2 amal029@infinity3 -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
 
 clean:
-	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class $(DEVICEFILES)/StreamIT/*java~ \
-	*dot *gxl *~ org/IBM/*~ ~/.cpuinfo ~/.distance* output/ stream2mc $(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~ \
-	$(ILPFILES)/*class $(ILPFILES)/*java~ $(HEURISTICFILE)/*.class $(HEURISTICFILE)/*~ $(STATEFILE)/*.class $(STATEFILE)/*~
+	rm -rf org/IBM/*class $(DEVICEFILES)/StreamIT/*class		\
+	$(DEVICEFILES)/StreamIT/*java~ *dot *gxl *~ org/IBM/*~		\
+	~/.cpuinfo ~/.distance* output/ stream2mc			\
+	$(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~		\
+	$(ILPFILES)/*class $(ILPFILES)/*java~ $(HEURISTICFILE)/*.class	\
+	$(HEURISTICFILE)/*~ $(STATEFILE)/*.class $(STATEFILE)/*~ \
+	$(LIBFILES)/*~ $(LIBFILES)*.class
 testini:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
@@ -135,4 +140,4 @@ ilp3: compile
 heuristics: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark12)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark14)
