@@ -27,6 +27,10 @@ public class state extends GXLNode{
     private boolean done = false;
     private ArrayList<state> parents = new ArrayList<state>();
     
+    public ArrayList<String> getChannel(){
+	return channel;
+    }
+    
     public ArrayList<state> getPartners(){
 	return partner;
     }
@@ -79,6 +83,9 @@ public class state extends GXLNode{
     public void setChannelName(String channel){
 	this.channel.add(channel);
     }
+    public ArrayList<String> getTypes(){
+	return this.type;
+    }
 
     public void setType(String type){
 	this.type.add(type);
@@ -104,12 +111,54 @@ public class state extends GXLNode{
     public ArrayList<Float> getCost(){
 	return myCosts;
     }
-    //This woun't be needed
-    public void updateCurrentCost(float c) throws Exception{
+    
+    private static float max = -1;  //every one will point to this
+				    //single variable.
+    
+    public void updateSenderReceiverCost(float parentCost) throws Exception{
+	if(getParents().size() != 1)
+	    throw new RuntimeException("I am a sender-receiver type node and My parent is not a single node");
+	if(myCosts.size() > 2)
+	    throw new RuntimeException("I have wrong number of costs: "+myCosts.size());
+	if(getParents().get(0).getTypes().get(0).equals("sender"))
+	    max = myCosts.get(0)>myCosts.get(1)?myCosts.get(0):myCosts.get(1);
+	else if((getParents().get(0).getTypes().size() == 2) && 
+		(getParents().get(0).getTypes().get(0).equals("receiver") && 
+		 getParents().get(0).getTypes().get(1).equals("sender")))
+	    max = max > myCosts.get(1) ? max : myCosts.get(1);
+	totalCost = parentCost;
+		
+	    
+    }
+    
+    //XXX: Assumption that the Cnode cost is the second one in the list
+    //I think it is a correct assumption, looking at the XMLparser
+    public void updateReceiverCost(float parentCost) throws Exception{
+	
+	if(getParents().size() == 1 && getParents().get(0).getTypes().get(0).equals("sender")){
+	    totalCost = (parentCost+= myCosts.get(0)>myCosts.get(1)?
+			 myCosts.get(0):myCosts.get(1));
+	}
+	else if(getParents().size() == 1 &&
+		getParents().get(0).getTypes().get(0).equals("receiver") &&
+		getParents().get(1).getTypes().get(1).equals("sender") ){
+	    totalCost = (parentCost+= max > myCosts.get(1) ? max : myCosts.get(1));
+	}
+    }
+    
+    public void updateSenderCost(float parentCost) throws Exception{
+	if(myCosts.size() == 1){
+	    totalCost = parentCost;
+	    max = myCosts.get(0); //sending this value
+	}
+	else throw new RuntimeException("Size of cost array is: "
+					+myCosts.size()+" for state: "+ getID()+", which is a sender");
+    }
+    public void updateCurrentCost(float parentCost) throws Exception{
 	if(myCosts.size() == 1)
-	    totalCost += myCosts.get(0);
+	    totalCost += parentCost+myCosts.get(0);
 	else if(myCosts.size() == 2){
-	    totalCost += myCosts.get(0) > myCosts.get(1) ? myCosts.get(0) : myCosts.get(1);
+	    totalCost = (parentCost += myCosts.get(0) > myCosts.get(1) ? myCosts.get(0) : myCosts.get(1));
 	}
 	else throw new RuntimeException("Size of cost array is: "
 					+myCosts.size()+" for state: "+ getID());

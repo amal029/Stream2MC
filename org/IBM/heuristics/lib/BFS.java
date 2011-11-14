@@ -107,10 +107,11 @@ public class BFS {
 			    boolean add = false;
 			    //Check if this state has a partner
 			    ArrayList<state> partner = update.getPartners();
+			    int counter = 0;
 			    if(partner!= null){
 				//check if the partner is also in the
 				//updates of any of the curr states
-				int counter=0;
+				counter=0;
 				for(state p : partner){
 				    for(state cs : q){
 					for(state up : cs.getUpdateStates()){
@@ -160,6 +161,9 @@ public class BFS {
 	//Put it in the temp list
 	Queue<state> list = new LinkedList<state>();
 	
+	//The rendezvous nodes always have to go in order....
+	//from sender->sender-receiver->.......->receiver
+	//XXX: IMP
 	if(s.getPartners() != null){
 	    //If this is a rendezvous state
 	    //get all partner rendezvous states
@@ -167,7 +171,8 @@ public class BFS {
 	    List<state> list1 = s.getPartners();
 	    Queue<state> rendezvousList = new LinkedList<state>();
 	    rendezvousList.offer(s);
-	    for(state partner : list1){
+	    while(!list1.isEmpty()){
+		state partner = list1.remove(0);
 		boolean add = true;
 		for(state rq : rendezvousList){
 		    if(partner == rq){
@@ -175,78 +180,131 @@ public class BFS {
 		    }
 		}
 		if(add){
-		    // rendezvousList.offer(((LinkedList<state>)BFS.workList).remove(partner));
-		    // list1.addAll(((LinkedList<state>)rendezvousList).get(rendezvousList.length()-1).getPartners());
+		    if(!((LinkedList<state>)BFS.workList).remove(partner))
+			throw new RuntimeException("Partner not found in the list "+partner.getID());
+		    rendezvousList.offer(partner);
+		    list1.addAll(((LinkedList<state>)rendezvousList).get(rendezvousList.size()-1).getPartners());
 		}
 	    }
+	    
+	    //Now order these things from sender to receiver. Only the
+	    //sender and receiver should be first and last, all others
+	    //can be in any order (because of the property of max-plus
+	    //algebra proven in the DAC'2012 paper)
+	    state sender = null;
+	    state receiver = null;
+	    for(state st : rendezvousList){
+		if(st.getTypes().size()==1){
+		    if(st.getTypes().get(0).equals("sender")){
+			sender = st;
+			rendezvousList.remove(sender);
+		    }
+		    else if(st.getTypes().get(0).equals("receiver")){
+			receiver = st;
+			rendezvousList.remove(receiver);
+		    }
+		}
+	    }
+	    if(sender == null || receiver == null)
+		throw new RuntimeException("Cannot find sender or receiver in rendezvous nodes "+s.getID());
+	    ((LinkedList<state>)rendezvousList).add(0,sender);
+	    ((LinkedList<state>)rendezvousList).add(rendezvousList.size()-1,receiver);
+	    
+	    //Now just put these in a macro node
+	    tempList.offer(rendezvousList);
+	    
+	    for(state st : rendezvousList)
+		//Set the done value
+		st.setDone(true);
+	
+	    //Attach the macro node to the root Node
+	    attachToRoot(s);
+	    
+	    //This does not need to go to the back of the workList,
+	    //because it cannot combine with any other partners but
+	    //those in the rendezvousList
 	}
 	else{
-	    while(true){
-		Queue<state> macroNode = new LinkedList<state>();
-		tempList.offer(macroNode); //added to the tempList
-		macroNode.offer(s);
-		while(!workList.isEmpty()){
-		    state ps = workList.poll(); //removed
-		    //Taking care of rendzevous
-		    if(ps.getPartners()!=null) continue;
-		    //get the guards for ps
-		    for(String g : ps.getGuards()){
+	    Queue<state> macroNode = new LinkedList<state>();
+	    tempList.offer(macroNode); //added to the tempList
+	    macroNode.offer(s);
+	    while(!workList.isEmpty()){
+		state ps = workList.poll(); //removed
+		//Taking care of rendzevous
+		if(ps.getPartners()!=null) continue;
+		//get the guards for ps
+		for(String g : ps.getGuards()){
 		
-			//Check if the guard is in the map if it is then what is
-			//it's value.  if the value is false then that means I
-			//cannot run this thing with the current node
-			if(!map.containsKey(g)){
-			    //This is the best possible case, but requires a lot
-			    //of work
+		    //Check if the guard is in the map if it is then what is
+		    //it's value.  if the value is false then that means I
+		    //cannot run this thing with the current node
+		    if(!map.containsKey(g)){
+			//This is the best
+			//possible case, but requires a lot of work
 		    
-			    /**
-			       TODO:
-			       3.) How to take care of rendezvous constructs??
-			       4.) How to take care of multiple accesses to join nodes
-			    */
-			    for(String sg : ps.getGuards()){
-				Guard gn = new Guard(sg);
-				gn.setGuardValue(false);
-				map.put(sg,gn);
-			    }
-			
-			    //add to the macroNode
-			    macroNode.offer(ps);
-			    break;
+			/**
+			   TODO:
+			   1.) How to take care of multiple accesses to join nodes
+			*/
+			for(String sg : ps.getGuards()){
+			    Guard gn = new Guard(sg);
+			    gn.setGuardValue(false);
+			    map.put(sg,gn);
 			}
-			else if(map.containsKey(g) && map.get(g).getGuardValue() == false){
-			    //This means it has the same guard as me, so lets
-			    //just throw it out.
+			
+			//add to the macroNode
+			macroNode.offer(ps);
+			break;
+		    }
+		    else if(map.containsKey(g) && map.get(g).getGuardValue() == false){
+			//This means it has the same guard as me, so lets
+			//just throw it out.
 		    
-			    //Only put it in the list if the s.getGuards and
-			    //ps.getGuards are not exactly the same.
-			    boolean add = true;
-			    for(String h : ps.getGuards()){
-				for(String k : s.getGuards()){
-				    if(h.equals(k)){
-					add = false; break;
+			//Only put it in the list if the s.getGuards and
+			//ps.getGuards are not exactly the same.
+			boolean add = true;
+			for(String h : ps.getGuards()){
+			    for(String k : s.getGuards()){
+				if(h.equals(k)){
+				    add = false; break;
+				}
+			    }
+			    if(!add) break;
+			}
+			if(add)
+			    list.offer(ps);
+			break;
+		    }
+		    else if(map.containsKey(g) && map.get(g).getGuardValue() == true)
+			throw new RuntimeException("The guard "+g+" for state" +s.getID()
+						   +" is in map, but its value is true");
+		}
+	    }
+	    while(!list.isEmpty()){
+		//Build all possible combinations using the list
+		state ls = list.poll();
+		Queue<state> macroNodeN = new LinkedList<state>();
+		for(Queue<state> mns : tempList){
+		    boolean replace = false;
+		    for(state ms : mns){
+			if(!replace){
+			    M2: for(String gls : ls.getGuards()){
+				for(String gms : ms.getGuards()){
+				    if(gls.equals(gms)){
+					replace = true;
+					break M2;
 				    }
 				}
-				if(!add) break;
 			    }
-			    if(add)
-				list.offer(ps);
-			    break;
 			}
-			else if(map.containsKey(g) && map.get(g).getGuardValue() == true)
-			    throw new RuntimeException("The guard "+g+" for state" +s.getID()
-						       +" is in map, but its value is true");
+			if(replace && ls != null){
+			    macroNodeN.offer(ls);
+			    ls = null;
+			}
+			else macroNodeN.offer(ms);
 		    }
 		}
-		while(!list.isEmpty()){
-		    state ps = list.poll();
-		    workList.offer(ps);
-		    //You also have to clear the map
-		    for(String g : ps.getGuards()){
-			map.remove(g);
-		    }
-		}
-		if(workList.isEmpty()) break;
+		tempList.offer(macroNodeN);
 	    }
 	}
 	//Set the done value
@@ -289,6 +347,10 @@ public class BFS {
 		//Build a new state with the same name as sm
 		
 		state snew = null;
+		if(parents.size() > 1)
+		    //XXX This (throw) will be removed later (once the
+		    //join node algorithm is completely decided)
+		    throw new RuntimeException("More than one parent :-( "+sm.getID());
 		for(state parent : parents){
 		    snew = new state(sm.getID());
 		    SG.add(snew);
@@ -301,8 +363,21 @@ public class BFS {
 		    for(float f : sm.getCost()){
 			snew.setCost(f);
 		    }
-		    snew.updateCurrentCost(parent.getCurrentCost());
-		    //set the cost as an attribute
+		    //Check if this is a normal (non-rendezvous node)
+		    if(sm.getPartners()==null)
+			snew.updateCurrentCost(parent.getCurrentCost());
+
+		    //See what these need to be. XXX: IMP
+		    else if(sm.getPartners()!=null){
+			for(String type : sm.getTypes()){
+			    if(sm.getTypes().size()==1 && type.equals("sender"))
+				snew.updateSenderCost(parent.getCurrentCost());
+			    else if(sm.getTypes().size()==2 && type.equals("receiver"))
+				snew.updateSenderReceiverCost(parent.getCurrentCost());
+			    else if(sm.getTypes().size() == 1 && type.equals("receiver"))
+				sm.updateReceiverCost(parent.getCurrentCost());
+			}
+		    }
 		    snew.setAttr("cost",new GXLString(""+snew.getCurrentCost()));
 		    
 		    //set the update guards high

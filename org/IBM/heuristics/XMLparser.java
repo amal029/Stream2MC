@@ -59,13 +59,69 @@ public class XMLparser implements compilerStage {
 		//     System.out.print(s.getID()+" ");
 		// System.out.println();
 		
+		//Connect the rendezvous partner nodes
+		List<state> states = buildPartnerNodes(map);
+		
+		//DEBUG
+		for(state s : states){
+		    System.out.print(s.getID()+"---->");
+		    for(state ps : s.getPartners())
+			System.out.print(ps.getID());
+		    System.out.println();
+		}
+		
+		
 		/**Start breadth first search***/
-		BFS bfs = new BFS(f,startingStates); //it starts on its own
+		//UNDEBUG = uncomment this file
+		// BFS bfs = new BFS(f,startingStates); //it starts on its own
 
 	    }
 	}
 	catch(Exception e){e.printStackTrace();}
 	return null;
+    }
+    
+    private static List<state> buildPartnerNodes(GuardHash<String,ArrayList<state>> map){
+	List<state> ret = new ArrayList<state>();
+	
+	Collection<ArrayList<state>> values = map.values();
+	Iterator<ArrayList<state>> iter = values.iterator();
+	while(iter.hasNext()){
+	    ArrayList<state> s1 = iter.next();
+	    for(state s11 : s1){
+		if(!s11.getChannel().isEmpty()){
+		    if(!ret.isEmpty() && !ret.contains(s11))
+			ret.add(s11);
+		    else if(ret.isEmpty())
+			ret.add(s11);
+		}
+	    }
+	}
+	
+	//Now make the partners
+	for(state s1 : ret){
+	    for(String channel : s1.getChannel()){
+		//Have to take care of the last character
+		//don't test for the last character
+		//Now get the real-name (just a substring)
+		channel = channel.substring(0,channel.length()-2);
+		//DEBUG
+		System.out.println(channel);
+		T: for(state s2 : ret){
+		    for(String chan2 : s2.getChannel()){
+			chan2 = chan2.substring(0,chan2.length()-2);
+			//DEBUG
+			System.out.println(chan2);
+			if(channel.equals(chan2)){
+			    //So we have found the partner
+			    s1.setPartnerState(s2);
+			    break T;
+			}
+		    }
+		}
+	    }
+	}
+	return ret;
     }
     
     //This method sets the update guards (and states) for all the
@@ -181,15 +237,11 @@ public class XMLparser implements compilerStage {
 		}
 	    }
 	}
-
-	//Set myCost
-	float f = 0f;
-	if((f = getStateCost(declaration,element,s))!=-1)
-	    s.setCost(f);
+	getStateCost(declaration,element,s);
     }
     
     //This is an expensive method
-    private static float getStateCost(String cDeclaration, Element element, state s){
+    private static void getStateCost(String cDeclaration, Element element, state s){
 	float ret = 0f;
 	
 	String sName = element.getChild("name").getTextTrim();
@@ -206,7 +258,10 @@ public class XMLparser implements compilerStage {
 		String temp[] = line.split(" ")[1].split("=");
 		// System.out.println(sName);
 		if(temp[0].equals("C"+sName)){
-		    ret = Float.valueOf(temp[1].split(";")[0].trim()).floatValue();
+		    if((ret = Float.valueOf(temp[1].split(";")[0].trim()).floatValue())!=-1)
+			s.setCost(ret); //In case of receiver,sender
+					//(the cost won't be put in,
+					//i.e., the -1 part)
 		    done = true;
 		    values.put("C"+sName,ret);
 		    //DEBUG
@@ -263,11 +318,11 @@ public class XMLparser implements compilerStage {
 		}
 		if(isWhat(sync,'!')){
 		    //get the sender value
-		    ret = getSenderValue(assign,cDeclaration);
+		    getSenderValue(assign,cDeclaration,s);
 		    s.setType("sender");
 		}
 		else if(isWhat(sync,'?')){
-		    ret = getReceiverValue(assign,cDeclaration);
+		    getReceiverValue(assign,cDeclaration,s);
 		    s.setType("receiver");
 		}
 		else throw new RuntimeException("Neither sender or receiver!!");
@@ -277,13 +332,7 @@ public class XMLparser implements compilerStage {
 		//set the update guard for this state
 		s.setUpdateGuards(getUpdateGuard(assign.getTextTrim()));
 	    }
-	    
-
-	    //Get the partner
-	    s.setPartner(null// getPartner(element.getChild("declaration"))
-			 );
 	}
-	return ret;
     }
     
     private static ArrayList<String> getUpdateGuard(String text){
@@ -300,7 +349,7 @@ public class XMLparser implements compilerStage {
 	return ret;
     }
     
-    private static float getSenderValue(Element assign,String cDeclaration){
+    private static void getSenderValue(Element assign,String cDeclaration, state stat){
 	float ret = 0f;
 	//I know that this is a sender
 	String text = assign.getTextTrim();
@@ -326,6 +375,7 @@ public class XMLparser implements compilerStage {
 		if(values.containsKey(sName)){
 		    //Now get the value and put it into the hash map as well
 		    ret = values.get(sName).floatValue();
+		    stat.setCost(ret);
 		    done=true;
 		}
 		else{
@@ -337,6 +387,7 @@ public class XMLparser implements compilerStage {
 			    String temp2[] = line.split(" ")[1].split("=");
 			    if(temp2[0].equals(sName)){
 				ret = Float.valueOf(temp2[1].split(";")[0].trim()).floatValue();
+				stat.setCost(ret);
 				done = true;
 				break;
 			    }
@@ -351,12 +402,10 @@ public class XMLparser implements compilerStage {
 		// System.out.println("Added to the map: "+t[0].trim()+"-->"+ret);
 	    }
 	}
-	
-	return ret;
     }
     
-    private static float getReceiverValue(Element assign, String cDeclaration){
-	float ret = 0f;
+    private static void getReceiverValue(Element assign, String cDeclaration, state stat){
+	ArrayList<Float> ret = new ArrayList<Float>();
 	//I know that this is a receiver
 	String text = assign.getTextTrim();
 	String temp[] = text.split(",");
@@ -380,33 +429,31 @@ public class XMLparser implements compilerStage {
 		    //Search in the hash map, it should always be there
 		    if(values.containsKey(sn)){
 			//Now get the value and put it into the hash map as well
-			ret = values.get(sn).floatValue();
+			stat.setCost(values.get(sn).floatValue());
 			done = true;
 		    }
 		    else{
-			    Scanner scan = new Scanner(cDeclaration);
-			    while(scan.hasNextLine()){
-				String line = scan.nextLine();
-				if(line.startsWith("int")){
-				    String temp2[] = line.split(" ")[1].split("=");
-				    if(temp2[0].equals(sn)){
-					ret = Float.valueOf(temp2[1].split(";")[0].trim()).floatValue();
-					done = true;
-					break;
-				    }
+			Scanner scan = new Scanner(cDeclaration);
+			while(scan.hasNextLine()){
+			    String line = scan.nextLine();
+			    if(line.startsWith("int")){
+				String temp2[] = line.split(" ")[1].split("=");
+				if(temp2[0].equals(sn)){
+				    stat.setCost(Float.valueOf(temp2[1].split(";")[0].trim()).floatValue());
+				    values.put(sn,stat.getCost().get(stat.getCost().size()-1));
+				    done = true;
+				    break;
 				}
 			    }
 			}
+		    }
 		    if(!done)
 			throw new RuntimeException("Value of "+sName+" cannot be found");
-		    //add the s to the hashmap with this value
-		    values.put(sn,ret);
 		    //DEBUG
 		    // System.out.println("Added to the map: "+sn+"-->"+ret);
 		}
 	    }
 	}
-	return ret;
     }
     
     private static HashMap<String,Float> values = new HashMap<String,Float>();
