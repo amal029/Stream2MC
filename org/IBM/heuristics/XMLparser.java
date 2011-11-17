@@ -72,7 +72,7 @@ public class XMLparser implements compilerStage {
 		
 		
 		/**Start breadth first search***/
-		//UNDEBUG = uncomment this file
+		//UNDEBUG = uncomment this line
 		// BFS bfs = new BFS(f,startingStates); //it starts on its own
 
 	    }
@@ -112,7 +112,7 @@ public class XMLparser implements compilerStage {
 			chan2 = chan2.substring(0,chan2.length()-2);
 			//DEBUG
 			System.out.println(chan2);
-			if(channel.equals(chan2)){
+			if(channel.equals(chan2) && s1 != s2){
 			    //So we have found the partner
 			    s1.setPartnerState(s2);
 			    break T;
@@ -214,6 +214,8 @@ public class XMLparser implements compilerStage {
 	//Name of the state
 	state s = new state(element.getChild("name").getTextTrim());
 	
+	if(s.getID() == null)
+	    throw new RuntimeException("XMLparser state has no name");
 	
 	//Now get the guard name Even if there are multiple transitions
 	//in a state machine, jsut looking at the first one should be

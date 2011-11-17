@@ -11,7 +11,10 @@ import java.util.*;
 import org.xml.sax.*;
 
 public class state extends GXLNode{
+    
+    private boolean isJoinNode = false;
     private boolean visited = false;
+    private ArrayList<String> joinNodes = new ArrayList<String>();
     private String id = "";
     private ArrayList<Float> myCosts = new ArrayList<Float>();
     private float totalCost = 0f;
@@ -26,6 +29,32 @@ public class state extends GXLNode{
     private ArrayList<state> updateElements = new ArrayList<state>();
     private boolean done = false;
     private ArrayList<state> parents = new ArrayList<state>();
+    
+    private int allocCounter = 0;
+    
+    public void incAllocCounter(){
+	++allocCounter;
+    }
+    
+    public int getAllocCounter(){
+	return allocCounter;
+    }
+    
+    public boolean isJoinNode(){
+	return isJoinNode;
+    }
+    
+    public void setIsJoinNode(boolean doneOnce){
+	this.isJoinNode = doneOnce;
+    }
+    
+    public void addJoinNode(String j){
+	joinNodes.add(j);
+    }
+    
+    public ArrayList<String> getJoinNodes(){
+	return joinNodes;
+    }
     
     public ArrayList<String> getChannel(){
 	return channel;
