@@ -106,7 +106,9 @@ public class createPArch{
         catch(IllegalStateException ie){ie.printStackTrace();}
         return list;
     }
-    private static ArrayList<GXLNode> makeProcessorNodes(ArrayList<String> nodes,String machineName,ArrayList<Integer>pID,ArrayList<Integer>cID){
+    private static ArrayList<GXLNode> makeProcessorNodes(ArrayList<String> nodes,
+							 String machineName,
+							 ArrayList<Integer>pID,ArrayList<Integer>cID){
         ArrayList<GXLNode> list = new ArrayList<GXLNode>(10);
         for(int e=0;e<nodes.size();++e){
             StringTokenizer token = new StringTokenizer(nodes.get(e),":");

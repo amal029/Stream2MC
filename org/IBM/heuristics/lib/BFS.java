@@ -690,22 +690,19 @@ public class BFS {
     }
     
     private static HashMap<String,Queue<state>> SGHash = new HashMap<String,Queue<state>>();
+    private static HashMap<String,Queue<state>> doneListMap = new HashMap<String,Queue<state>>();
+
     private static boolean updateDoneList(String nMNS){
 	boolean ret = false;
 	//get the macroNode in the done list with this macronodes names
-	for(Queue<state> q : doneList){
-	    String name = "";
-	    for(state s : q){
-		name += s.getID();
+	if(doneListMap.containsKey(nMNS)){
+	    Queue<state> q = doneListMap.remove(nMNS);
+	    if(!doneList.remove(q)){
+		throw new RuntimeException("doneListMap has node: "+nMNS+", but not the doneList");
 	    }
-	    if(nMNS.equals(name)){
-		if(((LinkedList<Queue<state>>)doneList).remove(q)){
-		    ret = true;
-		    break;
-		}
-		else throw new RuntimeException("Cannot remove macro node: "+ nMNS+" from doneList");
-	    }
+	    else ret = true;
 	}
+	else throw new RuntimeException("Tree hash map has node: "+nMNS+", but not the doneListMap");
 	return ret;
     }
     
@@ -790,11 +787,11 @@ public class BFS {
 		    SG.add(snew);
 		    stateEdge edge = new stateEdge(parent,snew);
 		    SG.add(edge);
+
 		    //This added node might be dangling in the graph,
 		    //because although it is added, it does not
 		    //necessarily mean that we will proceed further with
 		    //this path --> good for debugging
-		    
 		    
 		    //set the costs
 		    //First copy the cost from sm to snew
@@ -845,6 +842,9 @@ public class BFS {
 		    //from doneList with the same nodes as q's
 		    //macroNodes.
 		    doneList.offer(q);
+		    
+		    //also add it to the doneListMap
+		    doneListMap.put(nMNS,q);
 		}
 	    }
 	}
