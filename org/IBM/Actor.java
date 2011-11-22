@@ -244,7 +244,7 @@ public class Actor extends GXLNode{
     private static int c = 1;
 
     @SuppressWarnings("fallthrough")
-	protected static void transBuildPar(StringBuilder buf, String ID, String guards[], String [] updates, 
+	protected void transBuildPar(StringBuilder buf, String ID, String guards[], String [] updates, 
 					    CHOICE C, boolean terminalNode, String chanName, String sendName,
 					    String cost){
 	buf.append("<!-- The transition system -->\n");
@@ -287,9 +287,31 @@ public class Actor extends GXLNode{
 	}
 	++c;
     }
+    
+    private int getNumJoinParents(){
+	int ret = 0;
+	for(int e=0;e<getConnectionCount();++e){
+	    if(getConnectionAt(e).getDirection().equals(GXL.OUT)){
+		GXLEdge le = (GXLEdge)getConnectionAt(e).getLocalConnection();
+		if(le.getAttr("parallelEdge")==null){
+		    ++ret;
+		}
+	    }
+	}
+	return ret;
+    }
 
-    private static void bb(StringBuilder buf, String ID, String guards[], String [] updates, 
+    private void bb(StringBuilder buf, String ID, String guards[], String [] updates, 
 			   CHOICE C, boolean terminalNode, String sendName,String id1, String id2){
+	
+	//Add the additional information that this is a joinNode
+	if(getIsMergeNode() && !getID().equals("dummyTerminalNode")){
+	    // is this a join node
+	    buf.append("<label kind=\"join\">yes</label>\n");
+	    //how many parents does it have
+	    buf.append("<label kind=\"parents\">"+getNumJoinParents()+"</label>\n");
+	}
+	
 	switch(C){
 	case SEQ:
 	    buf.append("<label kind=\"guard\">");
@@ -343,7 +365,7 @@ public class Actor extends GXLNode{
 	if(terminalNode)
 	    buf.append("<transition><source ref=\""+id2+"\"/><target ref=\""+id2+"\"/></transition>\n");
     }
-    protected static void transBuild(StringBuilder buf, String ID, String guards[], String [] updates, 
+    protected void transBuild(StringBuilder buf, String ID, String guards[], String [] updates, 
 				     CHOICE C, boolean terminalNode){
 	buf.append("<!-- The transition system -->\n");
 	String id1 = "id"+c, id2="id"+(++c);

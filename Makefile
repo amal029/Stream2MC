@@ -123,7 +123,7 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark32)
+	-DdivFactor=1 $(COMPILE_FILES)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \

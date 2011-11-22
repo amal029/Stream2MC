@@ -36,11 +36,14 @@ public class BFS {
     private static state root = null;
     private static stateGraph SG = null;
     
-    public BFS (File f, List<state> startingStates) throws Exception{
+    private static long sTime = 0;
+    
+    public BFS (File f, List<state> startingStates, long sTime) throws Exception{
 	//Make the root node in here
 	root = new state("rootNode");
 	String fName = f.getName().replaceFirst("\\.xml","");
 	SG = new stateGraph("__stateGraph__"+fName,root);
+	SG.setEdgeMode("directed");
 	SG.add(root);
 	//The GXL document
 	GXLDocument doc = new GXLDocument();
@@ -50,6 +53,8 @@ public class BFS {
 	//Put the starting states onto the workList
 	for(state s : startingStates)
 	    workList.offer(s);
+	
+	this.sTime = sTime;
 	    
 	//Do the BFS
 	bfs();
@@ -96,8 +101,24 @@ public class BFS {
 		}
 	    }
 	}
-	if(counter == a.getParents().size()) return true;
+	//XXX: Check if this is incorrect
+	// if(counter == a.getParents().size()) return true;
+	if(counter == a.getNumJoinParents()) return true;
 	else return false;
+    }
+    
+    private static void colorPath(state sNode){
+	if(sNode.ifVisited()) return;
+	sNode.setVisited();
+	sNode.setAttr("color",new GXLString("green"));
+	sNode.setAttr("style",new GXLString("filled"));
+    	for(int e=0;e<sNode.getConnectionCount();++e){
+    	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.OUT)){
+    		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+		state node = (state)le.getSource();
+		colorPath(node);
+    	    }
+    	}
     }
     
     private static void bfs() throws Exception{
@@ -137,7 +158,45 @@ public class BFS {
 		//empty the map
 		map.clear();
 	    }
-	    if(doneList.isEmpty()) break;
+	    if(doneList.isEmpty()) {
+		//Tell what is the minimum makespan and then break
+		long fTime = System.currentTimeMillis()-sTime;
+		
+		//calculating the minimum makespan
+		state terminal = null;
+		float makespan = -1f;
+		Set<String> keys = SGHash.keySet();
+		Iterator<String> iter = keys.iterator();
+		while(iter.hasNext()){
+		    String str = iter.next();
+		    if(str.startsWith("dummyTerminalNode")){
+			LinkedList<state> dl = (LinkedList<state>)SGHash.get(str);
+			state dstate = dl.get(dl.size()-1);
+			if(terminal != null){
+			    if(new Float(((GXLString)dstate.getAttr("cost").getValue()).getValue()).floatValue() 
+			       < makespan){
+				terminal = dstate;
+				makespan = 
+				    new Float(((GXLString)dstate.getAttr("cost").getValue()).getValue()).floatValue();
+			    }
+			}
+			else{
+			    //For the very first time
+			    terminal = dstate;
+			    makespan = new Float(((GXLString)dstate.getAttr("cost").getValue()).getValue()).floatValue();
+			}
+		    }
+		}
+		
+		//color the path from the terminal node all the way to the rootNode
+		clearVisited(root);
+		colorPath(terminal);
+		clearVisited(root);
+		
+		System.out.println("Minimum optimal makespan: "+makespan);
+		System.out.println("Total time for BFS: "+fTime+" ms");
+		break;
+	    }
 	    else{
 		//push the update nodes onto the work list
 		//using the macro nodes
@@ -151,7 +210,7 @@ public class BFS {
 		    state curr = q.poll();
 		    for(state update : curr.getUpdateStates()){
 			//See if it's a join node
-			if(update.getParents().size() > 1){
+			if(update.getIsJoinNode()){
 			    //yes it is a join node
 			    //Check if this join node can be processed??
 			    
@@ -189,7 +248,7 @@ public class BFS {
 					    //set its parent as the leaf
 					    jNode.setParent(0,leaf);
 					    //Check if this node can be allocated
-					    if(jNode.getAllocCounter() == update.getParents().size())
+					    if(jNode.getAllocCounter() == update.getNumJoinParents())
 						//yes it can be allocated
 						workList.add(jNode);
 					    found = true;
@@ -359,7 +418,7 @@ public class BFS {
 							//set its parent as the leaf
 							jNode.setParent(0,leaf);
 							//Check if this node can be allocated
-							if(jNode.getAllocCounter() == update.getParents().size()){
+							if(jNode.getAllocCounter() == update.getNumJoinParents()){
 							    //yes it can be allocated
 							    jNode = new state(update.getID());
 							    jNode.setParent(0,leaf);
@@ -485,10 +544,13 @@ public class BFS {
 			    if(add && !partnerIsJoin){
 				//reset the parent to point to the leaf
 				//instead of the real-parent
-				update.setParent(0,leaf);
+				//shouldn't this be clearing parents as well
+				update.clearParents(); //XXX
+				update.addParent(leaf);
 				workList.add(update);
 			    }
 			    else if (add && partnerIsJoin){
+				update.clearParents(); //XXX
 				update.setParent(0,leaf);
 				halfScheduled.put(update.getID(),update);
 			    }
@@ -656,13 +718,17 @@ public class BFS {
 	    while(!list.isEmpty()){
 		//Build all possible combinations using the list
 		state ls = list.poll();
+		//DEBUG
+		// System.out.println(ls.getID()+" guard size: "+ls.getGuards().size());
 		Queue<state> macroNodeN = new LinkedList<state>();
 		for(Queue<state> mns : tempList){
 		    boolean replace = false;
-		    for(state ms : mns){
+		    M2: for(state ms : mns){
 			if(!replace){
-			    M2: for(String gls : ls.getGuards()){
+			    for(String gls : ls.getGuards()){
 				for(String gms : ms.getGuards()){
+				    //DEBUG
+				    // System.out.println(gls+" "+gms);
 				    if(gls.equals(gms)){
 					replace = true;
 					break M2;
@@ -708,10 +774,15 @@ public class BFS {
     
     private static state getLeaf(Queue<state> q){
 	String name = "";
+	//DEBUG
+	System.out.println(q.size());
+
 	for(state s : q)
 	    name += s.getID();
 	//XXX: the cast from Queue to linked list might give an error
 	LinkedList<state> l = (LinkedList<state>)SGHash.get(name);
+	if(l == null)
+	    throw new RuntimeException("The map does not contain the key: "+name);
 	return l.get(l.size()-1);
     }
 
@@ -719,7 +790,7 @@ public class BFS {
 	boolean ret = true;
 	
 	if(SGHash.containsKey(nMNS)){
-	    //Then check what is the is the cost of the node
+	    //Then check what is the cost of the node
 	    Queue<state> SGnMN = SGHash.get(nMNS);
 	    float leafCost = ((LinkedList<state>)SGnMN).get(SGnMN.size()-1).getCurrentCost();
 	    float cost = ((LinkedList<state>)nMN).get(nMN.size()-1).getCurrentCost();
@@ -751,6 +822,10 @@ public class BFS {
 	    Queue<state> nMN = new LinkedList<state>();
 	    String nMNS = "";
 	    ArrayList<state> parents = new ArrayList<state>();
+
+	    //DEBUG
+	    System.out.println("in attachroot, q.size: "+q.size());
+
 	    for(state sm : q){
 		if(counter == 0){
 		    if(!sm.getID().equals(s.getID())) 
@@ -761,9 +836,9 @@ public class BFS {
 		    //DEBUG
 		    // System.out.println(sm.getParents().size()+","+sm.getParents().get(0).getID());
 
-		    if(parents.size() != sm.getParents().size())
-			throw new RuntimeException("I cannot find all my parents and yet I have been scheduled "+
-						   sm.getID());
+		    // if(parents.size() != sm.getParents().size())
+		    // 	throw new RuntimeException("I cannot find all my parents and yet I have been scheduled "+
+		    // 				   sm.getID());
 		}
 		//Build a new state with the same name as sm
 		
@@ -778,6 +853,9 @@ public class BFS {
 		    //We need the generator, else GXL will complain
 		    //about having same named nodes
 		    snew = new state(sm.getID()+"_"+gen.generateNodeID());
+		    //DEBUG
+		    System.out.println("attachRoot ID: "+sm.getID());
+
 		    nMNS += sm.getID(); //we need this as well, because
 					//we use q.getID() (in getleaf()
 					//method to look into the
@@ -805,7 +883,7 @@ public class BFS {
 		    // this itself is not a join node
 		    for(String js : parent.getJoinNodes() ){
 			if(!isJoinNode(sm))
-			   snew.addJoinNode(js);
+			    snew.addJoinNode(js);
 		    }
 		    //Check if this is a normal (non-rendezvous node)
 		    if(sm.getPartners()==null)
@@ -832,42 +910,36 @@ public class BFS {
 		
 		++counter;
 
-		//Add to the SGHash
+	    }
+	    //Add to the SGHash
 
-		//Add to the doneList, provided this one is not already
-		//there with a lesser cost in the HashMap
-		if(updateLists(nMNS, nMN)){
-		    SGHash.put(nMNS,nMN);
-		    //We need to remove the already present macroNode
-		    //from doneList with the same nodes as q's
-		    //macroNodes.
-		    doneList.offer(q);
+	    //Add to the doneList, provided this one is not already
+	    //there with a lesser cost in the HashMap
+	    if(updateLists(nMNS, nMN)){
+		SGHash.put(nMNS,nMN);
+		//We need to remove the already present macroNode
+		//from doneList with the same nodes as q's
+		//macroNodes.
+		//DEBUG
+		System.out.println("in attachroot adding to doneList q");
+
+		doneList.offer(q);
 		    
-		    //also add it to the doneListMap
-		    doneListMap.put(nMNS,q);
-		}
+		//also add it to the doneListMap
+		doneListMap.put(nMNS,q);
 	    }
 	}
     }
     
     private static boolean isJoinNode(state s){
 	//Is "s" a join node??
-	if(s.getParents().size() > 1)
-	    return true;
-	else return false;
+	return s.getIsJoinNode();
     }
 
     // private static ArrayList<state> getParent(state sNode,state s){
     // 	ArrayList<state> ret= null;
     // 	if(sNode.ifVisited()) return ret; 
     // 	sNode.setVisited();
-    // 	// for(state parent : s.getParents()){
-    // 	//     if(sNode.getID().equals(parent.getID())){
-    // 	// 	ret = new ArrayList<state>();
-    // 	// 	ret.add(sNode);
-    // 	// 	break;
-    // 	//     }
-    // 	// }
 	
     // 	//Get the real parent, instead of some wrong parent with the
     // 	//same name.
@@ -888,17 +960,17 @@ public class BFS {
     // 	return ret;
     // }
 
-    // private static void clearVisited(state sNode){
-    // 	sNode.setVisited(false);
-    // 	for(int e=0;e<sNode.getConnectionCount();++e){
-    // 	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
-    // 		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
-    // 		if(le.getAttr("parallelEdge")==null){
-    // 		    state node = (state)le.getTarget();
-    // 		    clearVisited(node);
-    // 		}
-    // 	    }
-    // 	}
-    // }
+    private static void clearVisited(state sNode){
+    	sNode.setVisited(false);
+    	for(int e=0;e<sNode.getConnectionCount();++e){
+    	    if(sNode.getConnectionAt(e).getDirection().equals(GXL.IN)){
+    		GXLEdge le = (GXLEdge)sNode.getConnectionAt(e).getLocalConnection();
+    		if(le.getAttr("parallelEdge")==null){
+    		    state node = (state)le.getTarget();
+    		    clearVisited(node);
+    		}
+    	    }
+    	}
+    }
     
 }

@@ -13,6 +13,7 @@ import org.xml.sax.*;
 public class state extends GXLNode{
     
     private boolean isJoinNode = false;
+    private int pActors = 0;
     private boolean visited = false;
     private ArrayList<String> joinNodes = new ArrayList<String>();
     private String id = "";
@@ -29,8 +30,23 @@ public class state extends GXLNode{
     private ArrayList<state> updateElements = new ArrayList<state>();
     private boolean done = false;
     private ArrayList<state> parents = new ArrayList<state>();
-    
     private int allocCounter = 0;
+    
+    public void setNumJoinParents(int p){
+	pActors = p;
+    }
+    
+    public int getNumJoinParents(){
+	return pActors;
+    }
+    
+    public void setIsJoinNode(){
+	isJoinNode = true;
+    }
+    
+    public boolean getIsJoinNode(){
+	return isJoinNode;
+    }
     
     public void incAllocCounter(){
 	++allocCounter;
@@ -40,9 +56,9 @@ public class state extends GXLNode{
 	return allocCounter;
     }
     
-    public boolean isJoinNode(){
-	return isJoinNode;
-    }
+    // public boolean isJoinNode(){
+    // 	return isJoinNode;
+    // }
     
     public void setIsJoinNode(boolean doneOnce){
 	this.isJoinNode = doneOnce;
@@ -79,6 +95,10 @@ public class state extends GXLNode{
     }
     public void setVisited(boolean val){
 	visited = val;
+    }
+    
+    public void clearParents(){
+	parents.clear();
     }
     
     public void setParent(int i, state parent){

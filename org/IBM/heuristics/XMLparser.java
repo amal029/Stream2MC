@@ -63,18 +63,18 @@ public class XMLparser implements compilerStage {
 		List<state> states = buildPartnerNodes(map);
 		
 		//DEBUG
-		for(state s : states){
-		    System.out.print(s.getID()+"---->");
-		    for(state ps : s.getPartners())
-			System.out.print(ps.getID());
-		    System.out.println();
-		}
+		// for(state s : states){
+		//     System.out.print(s.getID()+"---->");
+		//     for(state ps : s.getPartners())
+		// 	System.out.print(ps.getID());
+		//     System.out.println();
+		// }
 		
 		
 		/**Start breadth first search***/
-		//UNDEBUG = uncomment this line
-		// BFS bfs = new BFS(f,startingStates); //it starts on its own
-
+		System.out.println();
+		long time1 = System.currentTimeMillis();
+		BFS bfs = new BFS(f,startingStates,time1); //it starts on its own
 	    }
 	}
 	catch(Exception e){e.printStackTrace();}
@@ -104,14 +104,14 @@ public class XMLparser implements compilerStage {
 		//Have to take care of the last character
 		//don't test for the last character
 		//Now get the real-name (just a substring)
-		channel = channel.substring(0,channel.length()-2);
+		channel = channel.substring(0,channel.length()-1);
 		//DEBUG
-		System.out.println(channel);
+		// System.out.println(channel);
 		T: for(state s2 : ret){
 		    for(String chan2 : s2.getChannel()){
-			chan2 = chan2.substring(0,chan2.length()-2);
+			chan2 = chan2.substring(0,chan2.length()-1);
 			//DEBUG
-			System.out.println(chan2);
+			// System.out.println(chan2);
 			if(channel.equals(chan2) && s1 != s2){
 			    //So we have found the partner
 			    s1.setPartnerState(s2);
@@ -279,10 +279,21 @@ public class XMLparser implements compilerStage {
 	    //set the guard updates
 	    List<Element> children = element.getChild("transition").getChildren("label");
 	    for(Element tutu : children){
+		boolean b = false;
 		if(tutu.getAttributeValue("kind").equals("assignment")){
 		    s.setUpdateGuards(getUpdateGuard(tutu.getTextTrim()));
-		    break;
+		    b = true;
 		}
+		if(tutu.getAttributeValue("kind").equals("join"))
+		    s.setIsJoinNode(true);
+		
+		if(tutu.getAttributeValue("kind").equals("parents")){
+		    if(!s.getIsJoinNode())
+			throw new RuntimeException("Join node"+s.getID()+" without number of parent state declared");
+		    else
+			s.setNumJoinParents(new Integer(tutu.getTextTrim()).intValue());
+		}
+		if(b) break;
 	    }
 	}
 	else if(!done){
@@ -295,7 +306,7 @@ public class XMLparser implements compilerStage {
 	    //See if this node is a sender?
 
 	    //There can be more than one transitions, when there are
-	    //more than 3 processors and this parallel can be exploited.
+	    //more than 2 processors and this parallel can be exploited.
 	    Element sync = null;
 	    Element assign = null;
 	    List<Element> trans = element.getChildren("transition");
@@ -316,6 +327,14 @@ public class XMLparser implements compilerStage {
 			    sync = child;
 			else if(attr.getValue().equals("assignment"))
 			    assign = child;
+			else if(attr.getValue().equals("join"))
+			    s.setIsJoinNode(true);
+			else if(attr.getValue().equals("parents")){
+			    if(s.getIsJoinNode())
+				s.setNumJoinParents(new Integer(child.getTextTrim()).intValue());
+			    else throw new RuntimeException("Node "+s.getID()
+							    +" is not a join node but has more than one parent");
+			}
 		    }
 		}
 		if(isWhat(sync,'!')){
