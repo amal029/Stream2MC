@@ -63,12 +63,12 @@ public class XMLparser implements compilerStage {
 		List<state> states = buildPartnerNodes(map);
 		
 		//DEBUG
-		// for(state s : states){
-		//     System.out.print(s.getID()+"---->");
-		//     for(state ps : s.getPartners())
-		// 	System.out.print(ps.getID());
-		//     System.out.println();
-		// }
+		for(state s : states){
+		    System.out.print(s.getID()+"---->");
+		    for(state ps : s.getPartners())
+			System.out.print(ps.getID());
+		    System.out.println();
+		}
 		
 		
 		/**Start breadth first search***/

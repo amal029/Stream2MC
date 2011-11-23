@@ -16,6 +16,7 @@ package org.IBM.heuristics.lib;
 import net.sourceforge.gxl.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.xml.sax.*;
 import org.IBM.*;
 import org.IBM.stateGraph.state;
@@ -37,11 +38,12 @@ public class BFS {
     private static stateGraph SG = null;
     
     private static long sTime = 0;
+    private static String fName = "";
     
     public BFS (File f, List<state> startingStates, long sTime) throws Exception{
 	//Make the root node in here
 	root = new state("rootNode");
-	String fName = f.getName().replaceFirst("\\.xml","");
+	fName = f.getName().replaceFirst("\\.xml","");
 	SG = new stateGraph("__stateGraph__"+fName,root);
 	SG.setEdgeMode("directed");
 	SG.add(root);
@@ -64,7 +66,7 @@ public class BFS {
 	SG.getDocument().write(new File("./output","__state_graph"+fName));
     }
     
-    private static void setJoinNodeName(String name, Queue<state> q){
+    private static void setJoinNodeName(String name, Queue<state> q) throws Exception{
 	String sName = "";
 	for(state s : q){
 	    sName += s.getID();
@@ -75,7 +77,13 @@ public class BFS {
 	    for(state s : graphStates)
 		s.addJoinNode(name);
 	}
-	else throw new RuntimeException("Cannot find states: "+sName+" in the graph");
+	else {
+	    //DEBUG
+	    //flush the tree onto the drive
+	    //write the state graph onto disk for debugging
+	    // SG.getDocument().write(new File("./output","__state_graph"+fName));
+	    throw new RuntimeException("Cannot find states: "+sName+" in the graph");
+	}
     }
     
     private static state getNewJoinNode(state update, state leaf){
@@ -125,6 +133,17 @@ public class BFS {
 	
 	while(true){
 	    while(!workList.isEmpty()){
+		
+		//DEBUG
+		System.out.println("----------------");
+		System.out.println("WORKLIST HAS");
+		for(state rt : workList){
+		    if(!rt.getDone())
+			System.out.println(rt.getID());
+		}
+		System.out.println("----------------");
+
+		
 		state s = workList.poll();
 
 		//If worklist is empty than break it
@@ -154,7 +173,15 @@ public class BFS {
 		for(state sw : workList){
 		    list.offer(sw);
 		}
+		//DEBUG
+		if(s.getPartners() != null){
+		    System.out.println("Before combi: "+workList.size());
+		}
 		buildCombinations(s,list);
+		//DEBUG
+		if(s.getPartners() != null){
+		    System.out.println("After combi: "+workList.size());
+		}
 		//empty the map
 		map.clear();
 	    }
@@ -201,11 +228,23 @@ public class BFS {
 		//push the update nodes onto the work list
 		//using the macro nodes
 		
+		//DEBUG
+		// System.out.println("Calling doneList when not empty");
+
+		
 		Queue<state> q = doneList.poll();
 		state leaf = getLeaf(q); //get the leaf from the
 		//hashmap, which represents the
 		//SG graph
 		HashMap<String,state> halfScheduled = new HashMap<String,state>();
+		Queue<state> tempQ = (Queue<state>)((LinkedList<state>)q).clone();
+		//DEBUG
+		System.out.println("*********");
+		System.out.println("Macro node is: ");
+		for(state tutu : q){
+		    System.out.println(tutu.getID());
+		}
+		System.out.println("*********");
 		QM: while(!q.isEmpty()){
 		    state curr = q.poll();
 		    for(state update : curr.getUpdateStates()){
@@ -214,9 +253,12 @@ public class BFS {
 			    //yes it is a join node
 			    //Check if this join node can be processed??
 			    
+			    //DEBUG
+			    System.out.println("Trying to update the join node: "+update.getID());
+			    
 			    //Check if this state has a partner
-			    ArrayList<state> partner = update.getPartners();
-			    if(partner == null){
+			    ArrayList<state> partner = new ArrayList<state>();
+			    if(update.getPartners() == null){
 				//This is the sequential (easy) case
 				
 				//Do i have a join node allocated??
@@ -228,14 +270,18 @@ public class BFS {
 				    //with the a new name
 				    
 				    state seqJoinNode = getNewJoinNode(update,leaf);
+				    //DEBUG
+				    System.out.println("Adding new join node to the partners named: "
+						       +seqJoinNode.getID()+"-->"+curr.getID());
+
 				    //add it to the map
 				    joinNodeMap.put(seqJoinNode.getID(),seqJoinNode);
 				    //now set all the node in the macro
 				    //node of the graph with the
 				    //seqJoinNode.getID() name
-				    setJoinNodeName(seqJoinNode.getID(),q);
+				    setJoinNodeName(seqJoinNode.getID(),tempQ);
 				}
-				else {
+				else{
 				    //This means I got some joinNode
 				    //names in me
 				    
@@ -248,9 +294,20 @@ public class BFS {
 					    //set its parent as the leaf
 					    jNode.setParent(0,leaf);
 					    //Check if this node can be allocated
-					    if(jNode.getAllocCounter() == update.getNumJoinParents())
+					    //DEBUG
+					    System.out.println("I "+curr.getID()+" have a join node already named "+
+							       jNode.getID());
+
+					    if(jNode.getAllocCounter() == update.getNumJoinParents()){
 						//yes it can be allocated
-						workList.add(jNode);
+						//DEBUG
+						System.out.println("I "+curr.getID()+" am adding my join node"+
+								   update.getID()+" to the worklist");
+						
+						update.clearParents(); //XXX
+						update.addParent(leaf);
+						workList.add(update);
+					    }
 					    found = true;
 					    break;
 
@@ -272,7 +329,7 @@ public class BFS {
 					    for(String gs : jN.getGuards()){
 						String t1 = gs.split("_")[0];
 						//DEBUG
-						System.out.println("Guard is: "+t1+": "+jN.getID());
+						// System.out.println("Guard is: "+t1+": "+jN.getID());
 						for(String ugs : updateGuards){
 						    String t2 = ugs.split("_")[0];
 						    if(t1.equals(t2)){
@@ -312,13 +369,14 @@ public class BFS {
 					    //now set all the node in the macro
 					    //node of the graph with the
 					    //seqJoinNode.getID() name
-					    setJoinNodeName(seqJoinNode.getID(),q);
+					    setJoinNodeName(seqJoinNode.getID(),tempQ);
 					}
 				    }
 				}
 			    }
-			    else if(partner != null){
+			    else if(update.getPartners() != null){
 				
+				partner.addAll(update.getPartners());
 				//This is the case where this state
 				//transition has a parallel node
 				//check if the partner is also in the
@@ -327,7 +385,7 @@ public class BFS {
 				//Check all my partners will be updated!!
 				int counter=0;
 				for(state p : partner){
-				    for(state cs : q){
+				    for(state cs : tempQ){
 					for(state up : cs.getUpdateStates()){
 					    if(up == p) {
 						//TODO: Check that is p is a
@@ -341,7 +399,8 @@ public class BFS {
 						//if present, make sure
 						//you don't add update
 						//again to the list.
-						List<state> addPs = p.getPartners();
+						List<state> addPs = new ArrayList<state>();
+						addPs.addAll(p.getPartners());
 						for(int e=0;e<addPs.size();++e){
 						    if(addPs.get(e) == update){
 							addPs.remove(e); break;
@@ -420,12 +479,12 @@ public class BFS {
 							//Check if this node can be allocated
 							if(jNode.getAllocCounter() == update.getNumJoinParents()){
 							    //yes it can be allocated
-							    jNode = new state(update.getID());
-							    jNode.setParent(0,leaf);
-							    jNode.setIsJoinNode(true);
-							    for(state psp : update.getPartners())
-								jNode.setPartnerState(psp);
-							    halfScheduled.put(jNode.getID(),jNode);
+							    // jNode = new state(update.getID());
+							    // jNode.setParent(0,leaf);
+							    // jNode.setIsJoinNode(true);
+							    // for(state psp : update.getPartners())
+							    // 	jNode.setPartnerState(psp);
+							    halfScheduled.put(update.getID(),update);
 							}
 							found = true;
 							break;
@@ -448,7 +507,7 @@ public class BFS {
 							for(String gs : jN.getGuards()){
 							    String t1 = gs.split("_")[0];
 							    //DEBUG
-							    System.out.println("Guard is: "+t1+": "+jN.getID());
+							    // System.out.println("Guard is: "+t1+": "+jN.getID());
 							    for(String ugs : updateGuards){
 								String t2 = ugs.split("_")[0];
 								if(t1.equals(t2)){
@@ -487,35 +546,46 @@ public class BFS {
 			    }
 			}//this should always be in this else
 			else{
-			    
 			    boolean add = false;
 			    //Check if this state has a partner
-			    ArrayList<state> partner = update.getPartners();
+			    ArrayList<state> partner = new ArrayList<state>();
 			    int counter = 0;
 			    boolean partnerIsJoin = false;
-			    if(partner!= null){
+			    if(update.getPartners() != null){
+				partner.addAll(update.getPartners());
 				//check if the partner is also in the
 				//updates of any of the curr states
 				counter=0;
-				for(state p : partner){
-				    for(state cs : q){
+				//DEBUG
+				for(int yu=0;yu<partner.size();++yu){
+				    state p = partner.get(yu);
+				    //DEBUG
+				    // System.out.println("!!! yu is !!!! "+yu);
+				    //q does not have the curr state!!
+				    YU: for(state cs : tempQ){
 					for(state up : cs.getUpdateStates()){
-					    if(up == p) {
+					    if(up == p){
 						//TODO: Check that is p is a
 						//join node then it
 						//actually can be
 						//scheduled.
 						//else break out 
 						
+						//DEBUG
+						System.out.println("Yipee!!, my partner "+p.getID()
+								   +" is gonna be updated at same time\n as me "
+								   +update.getID()+" partner size: "+partner.size());
+
 						if(isJoinNode(p))
 						    partnerIsJoin = true;
 
-						++counter; 
+						++counter;
 						//Add any more partners
 						//if present, make sure
 						//you don't add update
 						//again to the list.
-						List<state> addPs = p.getPartners();
+						List<state> addPs = new ArrayList<state>();
+						addPs.addAll(p.getPartners());
 						for(int e=0;e<addPs.size();++e){
 						    if(addPs.get(e) == update){
 							addPs.remove(e); break;
@@ -532,13 +602,23 @@ public class BFS {
 							}
 						    }
 						}
+						//DEBUG
+						if(!addPs.isEmpty())
+						    System.out.println("Adding to the partner list");
+						for(state ti : addPs)
+						    System.out.println(ti.getID());
 						partner.addAll(addPs);
-						break;
+						break YU;
 					    }
 					}
 				    }
 				}
-				if(counter == partner.size()) add = true;
+				if(counter == partner.size()){ 
+				    //DEBUG
+				    System.out.println("Adding node: "+update.getID()+" to worklist");
+
+				    add = true;
+				}
 			    }
 			    else add = true; //this is not a rendezvous state
 			    if(add && !partnerIsJoin){
@@ -551,7 +631,7 @@ public class BFS {
 			    }
 			    else if (add && partnerIsJoin){
 				update.clearParents(); //XXX
-				update.setParent(0,leaf);
+				update.addParent(leaf);
 				halfScheduled.put(update.getID(),update);
 			    }
 			}
@@ -603,11 +683,16 @@ public class BFS {
 	    //in the state graph (special case, since we are doing an
 	    //optimization --> building a DAG instead of a tree)
 	    
-	    List<state> list1 = s.getPartners();
+	    ArrayList<state> list1 = new ArrayList<state>(s.getPartners().size());
+	    for(state t : s.getPartners())
+		list1.add(t);
 	    Queue<state> rendezvousList = new LinkedList<state>();
+	    //DEBUG
+	    System.out.println("Adding the node "+s.getID()+" to rendezvousList"+" list1 size: "+list1.size());
+
 	    rendezvousList.offer(s);
 	    while(!list1.isEmpty()){
-		state partner = list1.remove(0);
+		state partner = list1.remove(0); 
 		boolean add = true;
 		for(state rq : rendezvousList){
 		    if(partner == rq){
@@ -617,6 +702,9 @@ public class BFS {
 		if(add){
 		    if(!((LinkedList<state>)BFS.workList).remove(partner))
 			throw new RuntimeException("Partner not found in the list "+partner.getID());
+		    //DEBUG
+		    System.out.println("Found my partner in the worklist called: "+s.getID()+"->\n"
+				       +partner.getID()+" partner's partner size: "+partner.getPartners().size());
 		    rendezvousList.offer(partner);
 		    list1.addAll(((LinkedList<state>)rendezvousList).get(rendezvousList.size()-1).getPartners());
 		}
@@ -628,36 +716,65 @@ public class BFS {
 	    //algebra proven in the DAC'2012 paper)
 	    state sender = null;
 	    state receiver = null;
-	    for(state st : rendezvousList){
+	    //DEBUG
+	    System.out.println("Size of rendezvous list: "+rendezvousList.size());
+
+	    for(int i=0;i<rendezvousList.size();++i){
+		state st = ((LinkedList<state>)rendezvousList).get(i);
 		if(st.getTypes().size()==1){
 		    if(st.getTypes().get(0).equals("sender")){
 			sender = st;
+			//DEBUG
+			System.out.println("Sender id: "+sender.getID());
+
 			rendezvousList.remove(sender);
+			--i;
 		    }
 		    else if(st.getTypes().get(0).equals("receiver")){
 			receiver = st;
+			//DEBUG
+			System.out.println("Recevier id: "+receiver.getID());
 			rendezvousList.remove(receiver);
+			--i;
 		    }
 		}
+		else if(st.getTypes().size() == 2){
+		    //DEBUG
+		    System.out.println("sender-receiver type: "+st.getParents().size());
+		}
+		else throw new RuntimeException("Wrong type for node "+st.getID());
 	    }
-	    if(sender == null || receiver == null)
-		throw new RuntimeException("Cannot find sender or receiver in rendezvous nodes "+s.getID());
-	    ((LinkedList<state>)rendezvousList).add(0,sender);
-	    ((LinkedList<state>)rendezvousList).add(rendezvousList.size()-1,receiver);
+	    //DEBUG
+	    System.out.println("Rendezvous list size: "+rendezvousList.size());
+
+	    if(sender != null)
+		((LinkedList<state>)rendezvousList).add(0,sender);
+	    else throw new RuntimeException("Did not find a sender");
+	    if(receiver != null)
+		((LinkedList<state>)rendezvousList).add(rendezvousList.size(),receiver);
+	    else throw new RuntimeException("Did not find a receiver");
 	    
 	    //Now just put these in a macro node
 	    tempList.offer(rendezvousList);
 	    
-	    for(state st : rendezvousList)
-		//Set the done value
-		st.setDone(true);
+	    //DEBUG
+	    // for(state st : rendezvousList)
+	    // 	System.out.println(st.getID());
+
+	    
+	    // for(state st : rendezvousList)
+	    // 	//Set the done value
+	    // 	st.setDone(true);
 	
 	    //Attach the macro node to the root Node
-	    attachToRoot(s);
+	    attachToRoot(sender);//the first node will always be the sender
 	    
 	    //This does not need to go to the back of the workList,
 	    //because it cannot combine with any other partners but
 	    //those in the rendezvousList
+	    
+	    //we are also not resetting the setDone variable, which
+	    //means this will not be called ever again.
 	}
 	else{
 	    Queue<state> macroNode = new LinkedList<state>();
@@ -715,44 +832,58 @@ public class BFS {
 						   +" is in map, but its value is true");
 		}
 	    }
+	    //DEBUG
+	    for(state rt : macroNode)
+		System.out.println("before building others: "+rt.getID());
+	    //XXX: This is purely incorrect --- FIXIT
 	    while(!list.isEmpty()){
 		//Build all possible combinations using the list
 		state ls = list.poll();
 		//DEBUG
-		// System.out.println(ls.getID()+" guard size: "+ls.getGuards().size());
-		Queue<state> macroNodeN = new LinkedList<state>();
+		System.out.println(ls.getID()+" guard size: "+ls.getGuards().size());
+		ArrayList<Queue<state>> toAdd = new ArrayList<Queue<state>>();
 		for(Queue<state> mns : tempList){
+		    Queue<state> macroNodeN = new LinkedList<state>();
 		    boolean replace = false;
-		    M2: for(state ms : mns){
+		    for(state ms : mns){
 			if(!replace){
-			    for(String gls : ls.getGuards()){
+			    MU: for(String gls : ls.getGuards()){
 				for(String gms : ms.getGuards()){
 				    //DEBUG
-				    // System.out.println(gls+" "+gms);
+				    System.out.println(gls+" "+gms);
 				    if(gls.equals(gms)){
 					replace = true;
-					break M2;
+					break MU;
 				    }
 				}
 			    }
-			}
-			if(replace && ls != null){
-			    macroNodeN.offer(ls);
-			    ls = null;
+			    if(replace){
+				System.out.println("Replaced "+ms.getID()+" with "+ls.getID());
+				macroNodeN.offer(ls);
+			    }
+			    else macroNodeN.offer(ms);
 			}
 			else macroNodeN.offer(ms);
 		    }
+		    toAdd.add(macroNodeN);
 		}
-		tempList.offer(macroNodeN);
+		//DEBUG
+		for(Queue<state> rt : toAdd){
+		    System.out.println("others built are: ");
+		    for(state rtt : rt)
+			System.out.println(rtt.getID());
+		    tempList.offer(rt);
+		}
+		// tempList.offer(macroNodeN);
 	    }
+	    //Set the done value
+	    s.setDone(true);
+	
+	    //Attach the macro node to the root Node
+	    attachToRoot(s);
+	
+	    BFS.workList.offer(s); //put it at the back of the main list
 	}
-	//Set the done value
-	s.setDone(true);
-	
-	//Attach the macro node to the root Node
-	attachToRoot(s);
-	
-	BFS.workList.offer(s); //put it at the back of the main list
     }
     
     private static HashMap<String,Queue<state>> SGHash = new HashMap<String,Queue<state>>();
@@ -775,7 +906,7 @@ public class BFS {
     private static state getLeaf(Queue<state> q){
 	String name = "";
 	//DEBUG
-	System.out.println(q.size());
+	// System.out.println(q.size());
 
 	for(state s : q)
 	    name += s.getID();
@@ -824,7 +955,7 @@ public class BFS {
 	    ArrayList<state> parents = new ArrayList<state>();
 
 	    //DEBUG
-	    System.out.println("in attachroot, q.size: "+q.size());
+	    // System.out.println("in attachroot, q.size: "+q.size());
 
 	    for(state sm : q){
 		if(counter == 0){
@@ -843,18 +974,19 @@ public class BFS {
 		//Build a new state with the same name as sm
 		
 		state snew = null;
-		if(parents.size() > 1)
+		if(parents.size() > 1 || parents.isEmpty())
 		    //XXX This (throw) will be removed later (once the
 		    //join node algorithm is completely decided) -->
 		    //it's been decided, this remains the same, because
 		    //it's a tree not a DAG
-		    throw new RuntimeException("More than one parent :-( "+sm.getID());
+		    throw new RuntimeException("More than one parent :-( "+sm.getID() +
+					       "or no parent at all!!");
 		for(state parent : parents){
 		    //We need the generator, else GXL will complain
 		    //about having same named nodes
 		    snew = new state(sm.getID()+"_"+gen.generateNodeID());
 		    //DEBUG
-		    System.out.println("attachRoot ID: "+sm.getID());
+		    // System.out.println("attachRoot ID: "+sm.getID());
 
 		    nMNS += sm.getID(); //we need this as well, because
 					//we use q.getID() (in getleaf()
@@ -873,18 +1005,14 @@ public class BFS {
 		    
 		    //set the costs
 		    //First copy the cost from sm to snew
-		    for(float f : sm.getCost()){
+		    for(float f : sm.getCost())
 			snew.setCost(f);
-		    }
-		    for(String type : sm.getTypes()){
+		    for(String type : sm.getTypes())
 			snew.setType(type);
-		    }
 		    // adding join nodes strings from parents as long as
 		    // this itself is not a join node
-		    for(String js : parent.getJoinNodes() ){
-			if(!isJoinNode(sm))
-			    snew.addJoinNode(js);
-		    }
+		    for(String js : parent.getJoinNodes() )
+			if(!isJoinNode(sm)) snew.addJoinNode(js);
 		    //Check if this is a normal (non-rendezvous node)
 		    if(sm.getPartners()==null)
 			snew.updateCurrentCost(parent.getCurrentCost());
@@ -894,10 +1022,15 @@ public class BFS {
 			for(String type : sm.getTypes()){
 			    if(sm.getTypes().size()==1 && type.equals("sender"))
 				snew.updateSenderCost(parent.getCurrentCost());
-			    else if(sm.getTypes().size()==2 && type.equals("receiver"))
+			    else if(sm.getTypes().size()==2 && type.equals("receiver")){
+				//set up the parent
+				snew.addParent(parent);
 				snew.updateSenderReceiverCost(parent.getCurrentCost());
-			    else if(sm.getTypes().size() == 1 && type.equals("receiver"))
-				sm.updateReceiverCost(parent.getCurrentCost());
+			    }
+			    else if(sm.getTypes().size() == 1 && type.equals("receiver")){
+				snew.addParent(parent);
+				snew.updateReceiverCost(parent.getCurrentCost());
+			    }
 			}
 		    }
 		    snew.setAttr("cost",new GXLString(""+snew.getCurrentCost()));
@@ -921,7 +1054,7 @@ public class BFS {
 		//from doneList with the same nodes as q's
 		//macroNodes.
 		//DEBUG
-		System.out.println("in attachroot adding to doneList q");
+		// System.out.println("in attachroot adding to doneList q");
 
 		doneList.offer(q);
 		    

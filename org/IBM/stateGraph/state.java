@@ -166,7 +166,9 @@ public class state extends GXLNode{
     
     public void updateSenderReceiverCost(float parentCost) throws Exception{
 	if(getParents().size() != 1)
-	    throw new RuntimeException("I am a sender-receiver type node and My parent is not a single node");
+	    throw new RuntimeException("I "+getID()
+				       +" am a sender-receiver type node and my parent is not a single node. Its size is: "+
+				       getParents().size());
 	if(myCosts.size() > 2)
 	    throw new RuntimeException("I have wrong number of costs: "+myCosts.size());
 	if(getParents().get(0).getTypes().get(0).equals("sender"))
@@ -190,9 +192,10 @@ public class state extends GXLNode{
 	}
 	else if(getParents().size() == 1 &&
 		getParents().get(0).getTypes().get(0).equals("receiver") &&
-		getParents().get(1).getTypes().get(1).equals("sender") ){
+		getParents().get(0).getTypes().get(1).equals("sender") ){
 	    totalCost = (parentCost+= max > myCosts.get(1) ? max : myCosts.get(1));
 	}
+	else if(getParents().size() == 0) throw new RuntimeException("I have no parents, receiver: "+getID());
     }
     
     public void updateSenderCost(float parentCost) throws Exception{
