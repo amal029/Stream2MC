@@ -185,7 +185,8 @@ public class createPArch{
 		    }
 		}
 		else
-		    throw new RuntimeException("I am confused: Don't know if machine "+machineName+" is NUMA or not\n HELP!!!!");
+		    throw new RuntimeException("I am confused: Don't know if machine "
+					       +machineName+" is NUMA or not\n HELP!!!!");
 	    }
 	}
 	if((ret&0x0001)==1){

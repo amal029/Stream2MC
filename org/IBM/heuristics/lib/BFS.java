@@ -916,26 +916,57 @@ public class BFS {
 	    throw new RuntimeException("The map does not contain the key: "+name);
 	return l.get(l.size()-1);
     }
+    
+    private static ArrayList<String> makeNameCombis(ArrayList<String> names){
+	ArrayList<String> ret = new ArrayList<String>();
+	for(String g : names){
+	    String temp = g;
+	    for(String h : names){
+		if(!g.equals(h)){
+		    temp+=h;
+		}
+	    }
+	    ret.add(temp);
+	}
+	return ret;
+    }
 
-    private static boolean updateLists(String nMNS, Queue<state> nMN){
+    private static boolean updateLists(Queue<state> nMN, ArrayList<String> names){
 	boolean ret = true;
 	
-	if(SGHash.containsKey(nMNS)){
-	    //Then check what is the cost of the node
-	    Queue<state> SGnMN = SGHash.get(nMNS);
-	    float leafCost = ((LinkedList<state>)SGnMN).get(SGnMN.size()-1).getCurrentCost();
-	    float cost = ((LinkedList<state>)nMN).get(nMN.size()-1).getCurrentCost();
-	    if(leafCost < cost)
-		ret= false; //don't add this node to the SGHash
-	    else{
-		//We need to remove this node from the HashMap
-		SGHash.remove(nMNS); //removed
-		//we also need to remove the already present node from
-		//the doneList, which has the same states macronode
-		if(!updateDoneList(nMNS))
-		    throw new RuntimeException("Node "+nMNS+" is in the SGHashMap, but not on the doneList");
-	    }
+	ArrayList<String> allCombis = makeNameCombis(names);
+	
+	for(String nMNS : allCombis){
+	    //DEBUG
+	    System.out.println("Trying to search: "+nMNS);
+	    if(SGHash.containsKey(nMNS)){
+		//DEBUG
+		System.out.println("Found the node: "+nMNS);
+
+		//Then check what is the cost of the node
+		Queue<state> SGnMN = SGHash.get(nMNS);
+		float leafCost = ((LinkedList<state>)SGnMN).get(SGnMN.size()-1).getCurrentCost();
+		float cost = ((LinkedList<state>)nMN).get(nMN.size()-1).getCurrentCost();
+		if(leafCost < cost){
+		    //DEBUG
+		    System.out.println("Removing myself from the map");
+
+		    ret= false; //don't add this node to the SGHash
+		    break;
+		}
+		else{
+		    //DEBUG
+		    System.out.println("Removing the other node from the map");
+
+		    //We need to remove this node from the HashMap
+		    SGHash.remove(nMNS); //removed
+		    //we also need to remove the already present node from
+		    //the doneList, which has the same states macronode
+		    if(!updateDoneList(nMNS))
+			throw new RuntimeException("Node "+nMNS+" is in the SGHashMap, but not on the doneList");
+		}
 	    
+	    }
 	}
 	
 	return ret;
@@ -953,6 +984,7 @@ public class BFS {
 	    Queue<state> nMN = new LinkedList<state>();
 	    String nMNS = "";
 	    ArrayList<state> parents = new ArrayList<state>();
+	    ArrayList<String> nAMNS = new ArrayList<String>();
 
 	    //DEBUG
 	    // System.out.println("in attachroot, q.size: "+q.size());
@@ -992,6 +1024,8 @@ public class BFS {
 					//we use q.getID() (in getleaf()
 					//method to look into the
 					//SGHashMap)
+		    nAMNS.add(sm.getID());
+
 		    //Add to the Queue nMN
 		    nMN.offer(snew);
 		    SG.add(snew);
@@ -1048,7 +1082,7 @@ public class BFS {
 
 	    //Add to the doneList, provided this one is not already
 	    //there with a lesser cost in the HashMap
-	    if(updateLists(nMNS, nMN)){
+	    if(updateLists(nMN,nAMNS)){
 		SGHash.put(nMNS,nMN);
 		//We need to remove the already present macroNode
 		//from doneList with the same nodes as q's
