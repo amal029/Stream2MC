@@ -1180,8 +1180,12 @@ public class BFS_K_restrictive {
 				// SGHash.remove(me.getKey());
 			}
 			
-			for(String g : toRem)
+			for(String g : toRem){
 			    SGHash.remove(g);
+			    //Have to also remove all these nodes from the donelist
+			    if(!updateDoneList(g))
+				throw new RuntimeException("Node "+g+" is in the SGHashMap, but not on the doneList");
+			}
 			
 			return true;
 
