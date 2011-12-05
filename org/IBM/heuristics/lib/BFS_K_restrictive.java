@@ -1,15 +1,6 @@
 /**
  * @author Avinash Malik (avimalik@ie.ibm.com)
- * @date 2011-11-13
- */
-
-
-/**
-   FIXME: I am currently using the same state class in the final
-   stateGraph that is generates. This causes are huge overhead in terms
-   of memory requirements. We need to build a new class (which has only
-   the String name, String cost, and is subclassed from the parent state
-   class, which is being used now.
+ * @date 2011-11-24
  */
 package org.IBM.heuristics.lib;
 
@@ -24,7 +15,7 @@ import org.IBM.stateGraph.stateEdge;
 import org.IBM.stateGraph.stateGraph;
 import org.IBM.heuristics.lib.*;
 
-public class BFS {
+public class BFS_K_restrictive {
     private static HashMap<String,state> joinNodeMap = new HashMap<String,state>();
     private static Queue<state> workList = new LinkedList<state>();
     private static Queue<Queue<state>> doneList = new LinkedList<Queue<state>>();
@@ -40,7 +31,23 @@ public class BFS {
     private static long sTime = 0;
     private static String fName = "";
     
-    public BFS (File f, List<state> startingStates, long sTime) throws Exception{
+    /**@field K determines the number of search paths that will be
+     * used in the heuristic search
+     
+     K = 1, do a depth first search using the minimum costs, can be used
+     to obtain a bound very fast.  
+     
+     K = 0, search the complete state space exhaustively.
+     
+     1 <= K <= N, search that many minimum cost paths only, throw the
+     rest away. A *path* in this case corresponds to a macro node being
+     thrown away.
+     
+     */
+    private static int K = 1; //0 or less means search all paths else,
+			      //only search the paths specified
+    
+    public BFS_K_restrictive (File f, List<state> startingStates, long sTime) throws Exception{
 	//Make the root node in here
 	root = new state("rootNode");
 	fName = f.getName().replaceFirst("\\.xml","");
@@ -63,9 +70,8 @@ public class BFS {
 	    
 	    
 	//write the state graph onto disk for debugging
-	SG.getDocument().write(new File("./output","__state_graph"+fName));
+	SG.getDocument().write(new File("./output","__state_graph"+fName));	
     }
-    
     private static void setJoinNodeName(String name, Queue<state> q) throws Exception{
 	String sName = "";
 	for(state s : q){
@@ -700,7 +706,7 @@ public class BFS {
 		    }
 		}
 		if(add){
-		    if(!((LinkedList<state>)BFS.workList).remove(partner))
+		    if(!((LinkedList<state>)BFS_K_restrictive.workList).remove(partner))
 			throw new RuntimeException("Partner not found in the list "+partner.getID());
 		    //DEBUG
 		    ;//System.out.println("Found my partner in the worklist called: "+s.getID()+"->\n"
@@ -795,7 +801,7 @@ public class BFS {
 			//possible case, but requires a lot of work
 		    
 			/**
-			   TODO:
+			   TODO: (DONE)
 			   1.) How to take care of multiple accesses to join nodes
 			*/
 			for(String sg : ps.getGuards()){
@@ -886,7 +892,7 @@ public class BFS {
 	    //Attach the macro node to the root Node
 	    attachToRoot(s);
 	
-	    BFS.workList.offer(s); //put it at the back of the main list
+	    BFS_K_restrictive.workList.offer(s); //put it at the back of the main list
 	}
     }
     
@@ -987,6 +993,7 @@ public class BFS {
 	    int counter = 0;
 	    Queue<state> nMN = new LinkedList<state>();
 	    String nMNS = "";
+	    String nMNGS = "";
 	    ArrayList<state> parents = new ArrayList<state>();
 	    ArrayList<String> nAMNS = new ArrayList<String>();
 
@@ -1031,6 +1038,9 @@ public class BFS {
 					//method to look into the
 					//SGHashMap)
 		    nAMNS.add(sm.getID());
+		    
+		    //Add the guards to nMNGS
+		    nMNGS += getGuards(sm);
 
 		    //Add to the Queue nMN
 		    nMN.offer(snew);
@@ -1085,23 +1095,127 @@ public class BFS {
 
 	    }
 	    //Add to the SGHash
+	    
+	    //Before checking for the equivalent states also check for
+	    //the K value and path pruning using the K value
 
 	    //Add to the doneList, provided this one is not already
 	    //there with a lesser cost in the HashMap
 	    if(updateLists(nMN,nAMNS)){
-		SGHash.put(nMNS,nMN);
-		//We need to remove the already present macroNode
-		//from doneList with the same nodes as q's
-		//macroNodes.
-		//DEBUG
-		// ;//System.out.println("in attachroot adding to doneList q");
+		if(updateKLists(((LinkedList<state>)nMN),nAMNS,nMNGS)){
+		    SGHash.put(nMNS,nMN);
+		    //We need to remove the already present macroNode
+		    //from doneList with the same nodes as q's
+		    //macroNodes.
+		    //DEBUG
+		    // ;//System.out.println("in attachroot adding to doneList q");
 
-		doneList.offer(q);
+		    doneList.offer(q);
 		    
-		//also add it to the doneListMap
-		doneListMap.put(nMNS,q);
+		    //also add it to the doneListMap
+		    doneListMap.put(nMNS,q);
+		}
 	    }
 	}
+    }
+    
+    private static String getGuards(state node){
+	
+	String ret = "";
+	for(String g : node.getGuards())
+	    ret += g.split("_")[0];
+
+	return ret;
+    }
+    
+    private static HashMap<String,List<Queue<state>>> guardMap = new HashMap<String,List<Queue<state>>>();
+    
+    /**
+     TODO:
+     1.) Do the join nodes later on (check, if this will work)
+     */
+    private static boolean updateKLists(LinkedList<state> nMN, ArrayList<String> names,
+					String nMNGS){
+	
+	if(K == 0)
+	    return true;
+	else{
+	    List<Queue<state>> ll  = null;
+	    if((ll = guardMap.get(nMNGS)) != null){
+		//Yes it does contain the key
+		
+		//how many need to be removed??
+		int toRemove = (1+ll.size())-K;
+		// //DEBUG
+		// System.out.println("It contains the key: "+nMNGS+" to remove: "+toRemove);
+		
+		//toRemove can only be 1 or 0
+		if(toRemove > 0){
+		    //find out, which one needs to be removed
+		    //the last one actually
+		    LinkedList<state> toR = (LinkedList<state>)ll.get(ll.size()-1);
+		    if(toR.get(toR.size()-1).getCurrentCost() > nMN.get(nMN.size()-1).getCurrentCost()){
+			toR = (LinkedList<state>)ll.remove(ll.size()-1); //removed the last one
+			//add the new one into the list
+			ll.add(ll.size(),nMN);
+			
+			//remove toR from the  SGHash as well
+			//Make the names for the removal
+			String tnMN = "";
+			for(state tor : toR)
+			    tnMN += tor.getID();
+
+			if(!SGHash.containsValue(toR))
+			    throw new RuntimeException("node: "+tnMN+" present in the guardMap, but not in the tree");
+			
+			ArrayList<String> toRem = new ArrayList<String>();
+			
+			//XXX: Expensive operation O(n) time
+			Set<Map.Entry<String,Queue<state>>> mes = SGHash.entrySet();
+			Iterator iter = mes.iterator();
+			while(iter.hasNext()){
+			    Map.Entry<String,Queue<state>> me = (Map.Entry<String,Queue<state>>)iter.next();
+			    if(me.getValue().equals(toR))
+				toRem.add(me.getKey());
+				// SGHash.remove(me.getKey());
+			}
+			
+			for(String g : toRem)
+			    SGHash.remove(g);
+			
+			return true;
+
+		    }
+		    else
+			return false;
+		}
+		else{
+		    //we do not need to remove anything. Add the
+		    //Queue<state> in a sorted order
+		    
+		    float myCost = nMN.get(nMN.size()-1).getCurrentCost();
+		    int counter=0;
+		    for(Queue<state> tutu : ll){
+			if(myCost <= ((LinkedList<state>)tutu).get(tutu.size()-1).getCurrentCost()){
+			    ll.add(counter,nMN);
+			    break;
+			}
+			++counter;
+		    }
+		    return true;
+		    
+		}
+	    }
+	    else{
+		//This means that K is atleast 1
+		ll = new LinkedList<Queue<state>>();
+		ll.add(nMN);
+		guardMap.put(nMNGS,ll);
+		return true;
+	    }
+	    
+	}
+	
     }
     
     private static boolean isJoinNode(state s){
@@ -1145,5 +1259,4 @@ public class BFS {
     	    }
     	}
     }
-    
 }

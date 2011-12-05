@@ -72,7 +72,7 @@ clean:
 	$(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~		\
 	$(ILPFILES)/*class $(ILPFILES)/*java~ $(HEURISTICFILE)/*.class	\
 	$(HEURISTICFILE)/*~ $(STATEFILE)/*.class $(STATEFILE)/*~ \
-	$(LIBFILES)/*~ $(LIBFILES)*.class
+	$(LIBFILES)/*~ $(LIBFILES)/*.class .temp*
 testini:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
@@ -123,7 +123,7 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark14)
+	-DdivFactor=1 $(COMPILE_FILES)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -137,7 +137,12 @@ ilp3: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage3 \
 	-DdivFactor=1 $(mp3decoder)
-heuristics: compile
+bfs: compile
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(COMPILE_FILES)
+
+bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
 	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark12)
