@@ -1,6 +1,7 @@
 SHELL=/bin/bash
 CC=javac
-CR=java -Xmx1G
+CR=java -Xmx1G -Xincgc \
+	-javaagent:/tmp/tutu/jip-1.2/profile/profile.jar -Dprofile.properties=/tmp/tutu/jip-1.2/profile/profile.properties
 CFALGS=-g
 HN=`hostname`
 TOPLEVEL=./org/IBM
@@ -145,4 +146,4 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark12)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(COMPILE_FILES)

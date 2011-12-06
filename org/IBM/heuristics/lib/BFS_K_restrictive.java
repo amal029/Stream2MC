@@ -44,7 +44,7 @@ public class BFS_K_restrictive {
      thrown away.
      
      */
-    private static int K = 1; //0 or less means search all paths else,
+    private static int K = 2; //0 or less means search all paths else,
 			      //only search the paths specified
     
     public BFS_K_restrictive (File f, List<state> startingStates, long sTime) throws Exception{
@@ -992,6 +992,7 @@ public class BFS_K_restrictive {
 	    Queue<state> q = tempList.poll();
 	    int counter = 0;
 	    Queue<state> nMN = new LinkedList<state>();
+	    Queue<state> nMMN = new LinkedList<state>();
 	    String nMNS = "";
 	    String nMNGS = "";
 	    ArrayList<state> parents = new ArrayList<state>();
@@ -1027,6 +1028,11 @@ public class BFS_K_restrictive {
 		    throw new RuntimeException("More than one parent :-( "+sm.getID() +
 					       "or no parent at all!!");
 		for(state parent : parents){
+
+		    //XXX
+		    if(counter == 0)
+			nMMN.offer(parent);
+
 		    //We need the generator, else GXL will complain
 		    //about having same named nodes
 		    snew = new state(sm.getID()+"_"+gen.generateNodeID());
@@ -1044,9 +1050,12 @@ public class BFS_K_restrictive {
 
 		    //Add to the Queue nMN
 		    nMN.offer(snew);
-		    SG.add(snew);
-		    stateEdge edge = new stateEdge(parent,snew);
-		    SG.add(edge);
+		    nMMN.offer(snew);
+		    
+		    //XXX: Add this to the tree only if you have to
+		    // SG.add(snew);
+		    // stateEdge edge = new stateEdge(parent,snew);
+		    // SG.add(edge);
 
 		    //This added node might be dangling in the graph,
 		    //because although it is added, it does not
@@ -1109,6 +1118,17 @@ public class BFS_K_restrictive {
 		    //macroNodes.
 		    //DEBUG
 		    // ;//System.out.println("in attachroot adding to doneList q");
+
+		    //XXX: Add this to the tree only if you have to.
+		    //Needed to reduce the overall computation time
+		    state parent = nMMN.poll();
+		    while(!nMMN.isEmpty()){
+			state snew = nMMN.poll();
+			SG.add(snew);
+			stateEdge edge = new stateEdge(parent,snew);
+			SG.add(edge);
+			parent = snew;
+		    }
 
 		    doneList.offer(q);
 		    
