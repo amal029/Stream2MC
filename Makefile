@@ -1,7 +1,6 @@
 SHELL=/bin/bash
 CC=javac
-CR=java -Xmx1G -Xincgc \
-	-javaagent:/tmp/tutu/jip-1.2/profile/profile.jar -Dprofile.properties=/tmp/tutu/jip-1.2/profile/profile.properties
+CR=java -Xmx1G -Xincgc
 CFALGS=-g
 HN=`hostname`
 TOPLEVEL=./org/IBM
@@ -20,6 +19,7 @@ COMPILE_FILES=../benchmarks/sexample.dot.gxl
 #New tde
 tde=../benchmarks/new/tde.dot.gxl
 serpent=../benchmarks/new/serpent.dot.gxl
+lattice=../benchmarks/new/lattice.dot.gxl
 bsort=../benchmarks/new/bitonicsort.dot.gxl
 mp3decoder=../benchmarks/new/mp3decoder.dot.gxl
 beamformer=../benchmarks/new/beamformer.dot.gxl
@@ -124,7 +124,7 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(COMPILE_FILES)
+	-DdivFactor=1 $(beamformer)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -146,4 +146,4 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(COMPILE_FILES)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark14)
