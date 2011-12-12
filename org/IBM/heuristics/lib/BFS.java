@@ -991,7 +991,7 @@ public class BFS {
 	    ArrayList<String> nAMNS = new ArrayList<String>();
 
 	    //DEBUG
-	    for(state lq : q)
+	    // for(state lq : q)
 		;//System.out.println("?????"+lq.getID()+"????? with parent: "+lq.getParents().get(0).getID());
 
 

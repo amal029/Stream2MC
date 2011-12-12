@@ -74,7 +74,8 @@ public class XMLparser implements compilerStage {
 		/**Start breadth first search***/
 		System.out.println();
 		long time1 = System.currentTimeMillis();
-		BFS_K_restrictive bfs = new BFS_K_restrictive(f,startingStates,time1); //it starts on its own
+		branhBound bfs = new branhBound(f,startingStates,time1); //it starts on its own
+		// BFS_K_restrictive bfs = new BFS_K_restrictive(f,startingStates,time1); //it starts on its own
 		// BFS bfs = new BFS(f,startingStates,time1); //it starts on its own
 	    }
 	}

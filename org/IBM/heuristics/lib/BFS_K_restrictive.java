@@ -44,7 +44,7 @@ public class BFS_K_restrictive {
      thrown away.
      
      */
-    private static int K = 0; //0 or less means search all paths else,
+    private static int K = 40; //0 or less means search all paths else,
 			      //only search the paths specified
     
     public BFS_K_restrictive (File f, List<state> startingStates, long sTime) throws Exception{
@@ -1153,8 +1153,8 @@ public class BFS_K_restrictive {
     private static HashMap<String,List<Queue<state>>> guardMap = new HashMap<String,List<Queue<state>>>();
     
     /**
-     TODO:
-     1.) Do the join nodes later on (check, if this will work)
+     TODO: 1.) Do the join nodes later on (check, if this will work)
+     FIXME: sometimes we are removing paths, which lead to a deadlock
      */
     private static boolean updateKLists(LinkedList<state> nMN, ArrayList<String> names,
 					String nMNGS){
