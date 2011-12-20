@@ -122,10 +122,16 @@ public class StreamITParser {
 		source.setAttr("rep",new GXLString("1"));
 		source.setAttr("unit_time_x86",new GXLString("0"));
 		source.setAttr("total_time_x86",new GXLString("0"));
+		source.setAttr("total_energy_x86",new GXLString("0"));
+		source.setAttr("energy_weights",new GXLString("0"));
+		source.setAttr("exec_weights",new GXLString("0"));
 		GXLNode target = (GXLNode)e.getTarget();
 		target.setAttr("rep",new GXLString("1"));
 		target.setAttr("unit_time_x86",new GXLString("0"));
 		target.setAttr("total_time_x86",new GXLString("0"));
+		source.setAttr("total_energy_x86",new GXLString("0"));
+		source.setAttr("energy_weights",new GXLString("0"));
+		source.setAttr("exec_weights",new GXLString("0"));
 		toRemoveTarget.add(target);
 		toRemoveSource.add(source);
 		toRemoveEdgeSpecial.add(e);
@@ -136,6 +142,10 @@ public class StreamITParser {
 		source.setAttr("rep",new GXLString(map.get(name+":rep")));
 		source.setAttr("unit_time_x86",new GXLString(map.get(name+":unit_work")));
 		source.setAttr("total_time_x86",new GXLString(map.get(name+":total_work")));
+		source.setAttr("total_energy_x86",new GXLString(map.get(name+":total_energy_x86")));
+		source.setAttr("energy_weights",new GXLString(map.get(name+":energy_weights")));
+		source.setAttr("exec_weights",new GXLString(map.get(name+":exec_weights")));
+		//Add the weight for this thing
 		source.remove(e);
 		e.remove(source);
 		//Get the target
@@ -157,6 +167,9 @@ public class StreamITParser {
 		commNode.setAttr("rate",new GXLString(map.get(name+":out_bytes")));
 		commNode.setAttr("sourceActorRep",new GXLString(map.get(name+":rep")));
 		commNode.setAttr("work_x86",new GXLString("0"));
+		commNode.setAttr("total_energy_x86",new GXLString("0"));
+		commNode.setAttr("energy_weights",new GXLString("0"));
+		commNode.setAttr("exec_weights",new GXLString("0"));
 		//Remove the edge from the edges arraylist
 		edges.remove(r);--r;
 		//Finally, if the target is a split or join, then add
@@ -169,6 +182,9 @@ public class StreamITParser {
 		    target.setAttr("rep",new GXLString("1"));
 		    target.setAttr("unit_time_x86",new GXLString("0"));
 		    target.setAttr("total_time_x86",new GXLString("0"));
+		    target.setAttr("total_energy_x86",new GXLString("0"));
+		    target.setAttr("energy_weights",new GXLString("0"));
+		    target.setAttr("exec_weights",new GXLString("0"));
 		}
 		toRemoveTarget.add(target);
 		toRemoveSource.add(source);
@@ -179,6 +195,9 @@ public class StreamITParser {
 		target.setAttr("rep",new GXLString(map.get(name2+":rep")));
 		target.setAttr("unit_time_x86",new GXLString(map.get(name2+":unit_work")));
 		target.setAttr("total_time_x86",new GXLString(map.get(name2+":total_work")));
+		target.setAttr("total_energy_x86",new GXLString(map.get(name2+":total_energy_x86")));
+		target.setAttr("energy_weights",new GXLString(map.get(name2+":energy_weights")));
+		target.setAttr("exec_weights",new GXLString(map.get(name2+":exec_weights")));
 		target.remove(e);
 		e.remove(target);
 		if(!thereS){
@@ -196,6 +215,8 @@ public class StreamITParser {
 		    ret.add(edgeC2);
 		    ret.add(edgeC1);
 		    commNode.setAttr("rep",new GXLString("1"));
+		    commNode.setAttr("energy_weights",new GXLString("0"));
+		    commNode.setAttr("exec_weights",new GXLString("0"));
 		    //Note I am setting this to one, because StreamIT
 		    //specification says that a split or merge node is
 		    //only run once in the graph -- from what I
@@ -203,6 +224,7 @@ public class StreamITParser {
 		    commNode.setAttr("sourceActorRep",new GXLString("1"));
 		    commNode.setAttr("rate",new GXLString(map.get(name2+":in_bytes")));
 		    commNode.setAttr("work_x86",new GXLString("0"));
+		    commNode.setAttr("total_energy_x86",new GXLString("0"));
 		    edges.remove(r);--r;
 		    //Finally, if the target is a split or join, then add
 		    //the rep Attr to it
@@ -213,6 +235,9 @@ public class StreamITParser {
 			source.setAttr("rep",new GXLString("1"));
 			source.setAttr("unit_time_x86",new GXLString("0"));
 			source.setAttr("total_time_x86",new GXLString("0"));
+			source.setAttr("total_energy_x86",new GXLString("0"));
+			source.setAttr("energy_weights",new GXLString("0"));
+			source.setAttr("exec_weights",new GXLString("0"));
 		    }
 		    toRemoveTarget.add(target);
 		    toRemoveSource.add(source);
@@ -248,22 +273,46 @@ public class StreamITParser {
     }
     private class workFileParser{
 	private File f=null;
+	private File powerF = null, weightF=null;
 	public workFileParser(String fileName){
 	    this.f = new File(fileName.replaceFirst("gxl$","txt"));
+	    this.weightF = new File(fileName.replaceFirst("gxl$","txt.weight"));
+	    try{
+		this.powerF = new File(fileName.replaceFirst("gxl$","txt.power.strong_arm"));
+		if(powerF == null)
+		    throw new FileNotFoundException();
+	    }
+	    catch(FileNotFoundException e){
+		this.powerF = new File(fileName.replaceFirst("gxl$","txt.power.xscale_arm"));
+	    }
 	}
 	public HashMap<String,String> parse() throws FileNotFoundException, IOException{
 	    BufferedReader  br = new BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(f))));
+	    BufferedReader brP = new 
+		BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(powerF))));
+	    BufferedReader brW = new 
+		BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(weightF))));
 	    br.readLine(); //First one is just wasted as such
 	    String str = null;
+	    String t = brP.readLine().trim();
 	    HashMap<String,String> map = new HashMap<String,String>();
 	    while((str = br.readLine()) != null){
 		String strs[] = str.split("\t");
+		String strs2[] = brW.readLine().trim().split(" ");
 		//filterName:<attribute>  = <value>
 		map.put(strs[0].trim()+":rep",strs[1]);
 		map.put(strs[0].trim()+":unit_work",strs[2]);
 		map.put(strs[0].trim()+":total_work",strs[3]);
 		map.put(strs[0].trim()+":in_bytes",strs[4]);
 		map.put(strs[0].trim()+":out_bytes",strs[5]);
+		Float fg = Float.valueOf(t);
+		map.put(strs[0].trim()+":total_energy_x86",
+			(fg.floatValue() * new Integer(strs[1]).intValue())+"");
+		if(strs2[0].trim().equals(strs[0].trim())){
+		    map.put(strs[0].trim()+":exec_weights",strs2[1]);
+		    map.put(strs[0].trim()+":energy_weights",strs2[2]);
+		}
+		else throw new RuntimeException(strs[0].trim()+"!="+strs2[0].trim());
 	    }
 	    return map;
 	}

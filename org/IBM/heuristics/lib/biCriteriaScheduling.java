@@ -15,7 +15,7 @@ import org.IBM.stateGraph.stateEdge;
 import org.IBM.stateGraph.stateGraph;
 import org.IBM.heuristics.lib.*;
 
-public class branhBound {
+public class biCriteriaScheduling {
     private static HashMap<String,state> joinNodeMap = new HashMap<String,state>();
     private static Queue<state> workList = new LinkedList<state>();
     private static Queue<Queue<state>> doneList = new LinkedList<Queue<state>>();
@@ -45,11 +45,11 @@ public class branhBound {
      rest away. A *path* in this case corresponds to a macro node being
      thrown away.
      
-     */
+    */
     private static int K = 0; //0 or less means search all paths else,
 			      //only search the paths specified
     
-    public branhBound (File f, List<state> startingStates, long sTime) throws Exception{
+    public biCriteriaScheduling (File f, List<state> startingStates, long sTime) throws Exception{
 	//Make the root node in here
 	root = new state("rootNode");
 	fName = f.getName().replaceFirst("\\.xml","");
@@ -131,6 +131,10 @@ public class branhBound {
 	}
     }
     
+    /**
+       TODO: 1.) Only take those K states with minimum exectime and
+       power consumption
+    */
     private static boolean cont(state update) throws Exception{
 	String temp = "";
 	for(String s : update.getGuards())
@@ -339,7 +343,7 @@ public class branhBound {
 				    state seqJoinNode = getNewJoinNode(update,leaf);
 				    //DEBUG
 				    ;//System.out.println("Adding new join node to the partners named: "
-						       // +seqJoinNode.getID()+"-->"+curr.getID());
+				    // +seqJoinNode.getID()+"-->"+curr.getID());
 
 				    //add it to the map
 				    joinNodeMap.put(seqJoinNode.getID(),seqJoinNode);
@@ -363,13 +367,13 @@ public class branhBound {
 					    //Check if this node can be allocated
 					    //DEBUG
 					    ;//System.out.println("I "+curr.getID()+" have a join node already named "+
-							       // jNode.getID());
+					    // jNode.getID());
 
 					    if(jNode.getAllocCounter() == update.getNumJoinParents()){
 						//yes it can be allocated
 						//DEBUG
 						;//System.out.println("I "+curr.getID()+" am adding my join node"+
-								   // update.getID()+" to the worklist");
+						// update.getID()+" to the worklist");
 						
 						update.clearParents(); //XXX
 						update.addParent(leaf);
@@ -642,8 +646,8 @@ public class branhBound {
 						
 						//DEBUG
 						;//System.out.println("Yipee!!, my partner "+p.getID()
-								   // +" is gonna be updated at same time\n as me "
-								   // +update.getID()+" partner size: "+partner.size());
+						// +" is gonna be updated at same time\n as me "
+						// +update.getID()+" partner size: "+partner.size());
 
 						if(isJoinNode(p))
 						    partnerIsJoin = true;
@@ -673,9 +677,9 @@ public class branhBound {
 						}
 						//DEBUG
 						// if(!addPs.isEmpty())
-						    ;//System.out.println("Adding to the partner list");
+						;//System.out.println("Adding to the partner list");
 						// for(state ti : addPs)
-						    ;//System.out.println(ti.getID());
+						;//System.out.println(ti.getID());
 						partner.addAll(addPs);
 						break YU;
 					    }
@@ -777,11 +781,11 @@ public class branhBound {
 		    }
 		}
 		if(add){
-		    if(!((LinkedList<state>)branhBound.workList).remove(partner))
+		    if(!((LinkedList<state>)biCriteriaScheduling.workList).remove(partner))
 			throw new RuntimeException("Partner not found in the list "+partner.getID());
 		    //DEBUG
 		    ;//System.out.println("Found my partner in the worklist called: "+s.getID()+"->\n"
-				       // +partner.getID()+" partner's partner size: "+partner.getPartners().size());
+		    // +partner.getID()+" partner's partner size: "+partner.getPartners().size());
 		    rendezvousList.offer(partner);
 		    list1.addAll(((LinkedList<state>)rendezvousList).get(rendezvousList.size()-1).getPartners());
 		}
@@ -963,7 +967,7 @@ public class branhBound {
 	    //Attach the macro node to the root Node
 	    attachToRoot(s);
 	
-	    branhBound.workList.offer(s); //put it at the back of the main list
+	    biCriteriaScheduling.workList.offer(s); //put it at the back of the main list
 	}
     }
     
@@ -1313,10 +1317,10 @@ public class branhBound {
     private static HashMap<String,List<Queue<state>>> guardMap = new HashMap<String,List<Queue<state>>>();
     
     /**
-     TODO: 1.) Do the join nodes later on (check, if this will work)
-     FIXME: sometimes we are removing paths, which lead to a deadlock
-     (FIXED)
-     */
+       TODO: 1.) Do the join nodes later on (check, if this will work)
+       FIXME: sometimes we are removing paths, which lead to a deadlock
+       (FIXED)
+    */
     private static boolean updateKLists(LinkedList<state> nMN, ArrayList<String> names,
 					String nMNGS){
 	
@@ -1352,7 +1356,7 @@ public class branhBound {
 
 			//XXX: FIXME
 			if(!SGHash.containsValue(toR));
-			    // throw new RuntimeException("node: "+tnMN+" present in the guardMap, but not in the tree");
+			// throw new RuntimeException("node: "+tnMN+" present in the guardMap, but not in the tree");
 			
 			ArrayList<String> toRem = new ArrayList<String>();
 			
@@ -1363,7 +1367,7 @@ public class branhBound {
 			    Map.Entry<String,Queue<state>> me = (Map.Entry<String,Queue<state>>)iter.next();
 			    if(me.getValue().equals(toR))
 				toRem.add(me.getKey());
-				// SGHash.remove(me.getKey());
+			    // SGHash.remove(me.getKey());
 			}
 			
 			for(String g : toRem){

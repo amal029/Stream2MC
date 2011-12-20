@@ -124,7 +124,7 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(beamformer)
+	-DdivFactor=1 $(audiobeam)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -146,4 +146,4 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark14)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(audiobeam)
