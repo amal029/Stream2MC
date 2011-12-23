@@ -20,7 +20,7 @@ public class eActor extends Actor{
 	String guardLabels = getGuardLabels();
 	String updateLabels = getUpdateLabels();
 	String gls[] = null, uls[]=null;
-	String costLabels = "";
+	String costLabels = "", energyLabels="";
 	if(guardLabels == null || (updateLabels==null && !getID().equals("dummyTerminalNode")))
 	    throw new RuntimeException("Node "+getID()+" has null guard or update label");
 	else{
@@ -31,12 +31,15 @@ public class eActor extends Actor{
 	}
 	//Check if there is just one total_time_x86. If so, then
 	//increase it p.size() number of times.
-	String meCost = null;
+	String meCost = null, meEnergy=null;
 	if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode"));
 	else{
 	    String myCost[]=((GXLString)getAttr("total_time_x86").getValue()).getValue().split(";");
+	    String myEnergy[] = ((GXLString)getAttr("total_energy_x86").getValue()).getValue().split(";");
 	    if(myCost.length == 1)
 		meCost=myCost[0];
+	    if(myEnergy.length == 1)
+		meEnergy=myEnergy[0];
 	    else if(myCost.length != p.size())
 		throw new RuntimeException("The total_time_x86 variable for node: "+getID()+" is not correctly defined");
 	}
@@ -64,10 +67,13 @@ public class eActor extends Actor{
 	    if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode"));
 	    else if(meCost!=null){
 		costLabels += meCost+";";
+		energyLabels += meEnergy+";";
 	    }
 	}
 	if(meCost != null)
 	    setAttr("total_time_x86",new GXLString(costLabels));
+	if(meEnergy != null)
+	    setAttr("total_energy_x86",new GXLString(energyLabels));
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));
     }

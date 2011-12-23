@@ -31,7 +31,7 @@ public class biCriteriaScheduling {
     private static long sTime = 0;
     private static String fName = "";
     
-    private static float BOUND = 512;//the default bound
+    private static float BOUND = 0;//the default bound
     
     /**@field K determines the number of search paths that will be
      * used in the heuristic search

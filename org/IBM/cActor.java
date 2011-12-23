@@ -40,6 +40,15 @@ public class cActor extends Actor{
 	if(getAttr("work_x86")==null) return null;
 	else return ((GXLString)this.getAttr("work_x86").getValue()).getValue();
     }
+    private String getEnergyLabel() throws RuntimeException{
+	if(getAttr("total_energy_x86")==null) return null;
+	else return ((GXLString)this.getAttr("total_energy_x86").getValue()).getValue();
+    }
+    private void setEnergyLabel(String label){
+	if(getAttr("total_energy_x86")==null) 
+	    throw new RuntimeException("Communication node "+getID()+" does not have any energy!!");
+	else setAttr("total_energy_x86",new GXLString(label));
+    }
     private void setWorkLabel(String label){
 	if(getAttr("work_x86")==null) throw new RuntimeException("Communication node "+getID()+" does not do any work!!");
 	else setAttr("work_x86",new GXLString(label));
@@ -49,16 +58,17 @@ public class cActor extends Actor{
     protected void updateLabels(ArrayList<GXLNode> p, ArrayList<GXLEdge> c)throws Exception{
 	String guardLabels = getGuardLabels();
 	String updateLabels = getUpdateLabels();
-	String workLabel = getWorkLabel();
-	String workLabels = null;
+	String workLabel = getWorkLabel(), energyLabel = getEnergyLabel();
+	String workLabels = null, energyLabels = null;
 	String gls[] = null, uls[]=null;
-	if(guardLabels == null || updateLabels==null || workLabel == null)
-	    throw new RuntimeException("Node "+getID()+" has null guard or update or work label");
+	if(guardLabels == null || updateLabels==null || workLabel == null || energyLabel == null)
+	    throw new RuntimeException("Node "+getID()+" has null guard or update or work or energy label");
 	else{
 	    gls = getSplitLabels(guardLabels,",");
 	    uls = getSplitLabels(updateLabels,",");
 	    guardLabels = ""; updateLabels = "";
 	    workLabels="";
+	    energyLabels="";
 	}
 	// There is never a possiblity that dummyTerminalNode
 	//or dummyStartNode are cActors, so no worries here
@@ -96,6 +106,7 @@ public class cActor extends Actor{
 	    //And the latency for the communication
 	    //Set the latency for calculation by the model checker
 	    workLabels += parser.getLatency(getRate()*getSourceActorRep()+"")+";";
+	    energyLabels += energyLabel+";";
 	    for(int t=0;t<gls.length;++t)
 		guardLabels += gls[t]+"$"+sID+";";
 	    for(int t=0;t<uls.length;++t)
@@ -106,6 +117,7 @@ public class cActor extends Actor{
 	setAttr("__guard_labels_with_processors",new GXLString(guardLabels));
 	setAttr("__update_labels_with_processors",new GXLString(updateLabels));
 	setWorkLabel(workLabels);
+	setEnergyLabel(energyLabels);
     }
     //Have the complete these methods
     private static String[] minimize(String guards[]){

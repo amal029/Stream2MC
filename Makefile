@@ -73,7 +73,7 @@ clean:
 	$(DECLUSTERINGFILES)/*class $(DECLUSTERINGFILES)/*java~		\
 	$(ILPFILES)/*class $(ILPFILES)/*java~ $(HEURISTICFILE)/*.class	\
 	$(HEURISTICFILE)/*~ $(STATEFILE)/*.class $(STATEFILE)/*~ \
-	$(LIBFILES)/*~ $(LIBFILES)/*.class .temp*
+	$(LIBFILES)/*~ $(LIBFILES)/*.class .temp* *log
 testini:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/iniParser /home/amal029/Dropbox/IBM_Work/Data/socket_tcp_ip/infinity.ini
 
@@ -124,6 +124,18 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
+	-DdivFactor=1 $(audiobeam)
+
+ilpbi: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.ILP.ILPStageBiCriteriaScheduling \
+	-DdivFactor=1 $(audiobeam)
+
+ilpbisim: compile
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.ILP.ILPStageSimpleBiCriteriaScheduling \
 	-DdivFactor=1 $(audiobeam)
 
 ilp2: compile

@@ -168,8 +168,9 @@ public class StreamITParser {
 		commNode.setAttr("sourceActorRep",new GXLString(map.get(name+":rep")));
 		commNode.setAttr("work_x86",new GXLString("0"));
 		commNode.setAttr("total_energy_x86",new GXLString("0"));
-		commNode.setAttr("energy_weights",new GXLString("0"));
-		commNode.setAttr("exec_weights",new GXLString("0"));
+		//FIXME: what should be the energy weights??
+		commNode.setAttr("energy_weights",new GXLString(map.get(name+":energy_weights")));
+		commNode.setAttr("exec_weights",new GXLString(map.get(name+":exec_weights")));
 		//Remove the edge from the edges arraylist
 		edges.remove(r);--r;
 		//Finally, if the target is a split or join, then add
@@ -215,8 +216,9 @@ public class StreamITParser {
 		    ret.add(edgeC2);
 		    ret.add(edgeC1);
 		    commNode.setAttr("rep",new GXLString("1"));
-		    commNode.setAttr("energy_weights",new GXLString("0"));
-		    commNode.setAttr("exec_weights",new GXLString("0"));
+		    //what should be the energy weights??
+		    commNode.setAttr("energy_weights",new GXLString(map.get(name2+":energy_weights")));
+		    commNode.setAttr("exec_weights",new GXLString(map.get(name2+":exec_weights")));
 		    //Note I am setting this to one, because StreamIT
 		    //specification says that a split or merge node is
 		    //only run once in the graph -- from what I
