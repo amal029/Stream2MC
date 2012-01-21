@@ -19,6 +19,8 @@ import org.jdom.Element;
 import org.jdom.Attribute;
 
 public class XMLparser implements compilerStage {
+    private static float PI = 1; //default values
+    private static float PHI = 0;//default values
     public String[] applyMethod(String args[],String fNames[]){
 	String rets[] = new String[args.length];
     	try{
@@ -74,7 +76,8 @@ public class XMLparser implements compilerStage {
 		/**Start breadth first search***/
 		System.out.println();
 		long time1 = System.currentTimeMillis();
-		biCriteriaScheduling bfs = new biCriteriaScheduling(f,startingStates,time1); //it starts on its own
+		biCriteriaScheduling bfs = new biCriteriaScheduling(f,startingStates,time1,
+								    XMLparser.PI, XMLparser.PHI); //it starts on its own
 		// BFS_K_restrictive bfs = new BFS_K_restrictive(f,startingStates,time1); //it starts on its own
 		// BFS bfs = new BFS(f,startingStates,time1); //it starts on its own
 	    }
@@ -238,6 +241,15 @@ public class XMLparser implements compilerStage {
 		    // System.out.println("Setting guard for state "+s.getID()+" "+child.getTextTrim().split("=")[0]);
 		    //Add to the map
 		    addToMap(s,map); //FIXME
+		}
+		else if(attr.getValue().equals("energy")){
+		    s.setECost(new Float(child.getTextTrim()).floatValue());
+		}
+		else if(attr.getValue().equals("energyW")){
+		    PHI = new Float(child.getTextTrim()).floatValue();
+		}
+		else if(attr.getValue().equals("costW")){
+		    PI = new Float(child.getTextTrim()).floatValue();
 		}
 	    }
 	}

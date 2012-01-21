@@ -110,7 +110,7 @@ stage3: compile
 stage4: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4 \
-	$(benchmark1)
+	-DdivFactor=1 $(benchmark12)
 
 main:
 	rm -f stream2mc
@@ -124,19 +124,19 @@ declustering: compile
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(audiobeam)
+	-DdivFactor=1 $(benchmark12)
 
 ilpbi: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageBiCriteriaScheduling \
-	-DdivFactor=1 $(audiobeam)
+	-DdivFactor=1 $(benchmark12)
 
 ilpbisim: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageSimpleBiCriteriaScheduling \
-	-DdivFactor=1 $(audiobeam)
+	-DdivFactor=1 $(benchmark12)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \

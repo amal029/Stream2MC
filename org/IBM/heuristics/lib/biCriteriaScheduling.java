@@ -33,6 +33,9 @@ public class biCriteriaScheduling {
     
     private static float BOUND = 0;//the default bound
     
+    private static float PI = 1; //the default makespan weight
+    private static float PHI = 0; //the default energy weight
+    
     /**@field K determines the number of search paths that will be
      * used in the heuristic search
      
@@ -49,8 +52,11 @@ public class biCriteriaScheduling {
     private static int K = 0; //0 or less means search all paths else,
 			      //only search the paths specified
     
-    public biCriteriaScheduling (File f, List<state> startingStates, long sTime) throws Exception{
+    public biCriteriaScheduling (File f, List<state> startingStates, long sTime,
+				 float PI, float PHI) throws Exception{
 	//Make the root node in here
+	this.PI = PI;
+	this.PHI = PHI;
 	root = new state("rootNode");
 	fName = f.getName().replaceFirst("\\.xml","");
 	SG = new stateGraph("__stateGraph__"+fName,root);
@@ -151,8 +157,13 @@ public class biCriteriaScheduling {
 		    if(list.get(list.size()-1).getCost().size() > 1)
 			return true; //give preference to parallelism
 		    else{
-			if(list.get(list.size()-1).getCost().get(0) <=
-			   update.getCost().get(0)){
+			/**
+			   TODO: CHECK IF THIS WORKS CORRECTLY
+			 */
+			if(((PI*list.get(list.size()-1).getCost().get(0))
+			    +(list.get(list.size()-1).getECost()*PHI)) <=
+			   ((update.getCost().get(0)*PI)+(update.getECost()*PHI))
+			   ){
 			    return true;
 			}
 			else{
@@ -1032,7 +1043,12 @@ public class biCriteriaScheduling {
 		Queue<state> SGnMN = SGHash.get(nMNS);
 		float leafCost = ((LinkedList<state>)SGnMN).get(SGnMN.size()-1).getCurrentCost();
 		float cost = ((LinkedList<state>)nMN).get(nMN.size()-1).getCurrentCost();
-		if(leafCost <= cost){
+		float leafPCost = ((LinkedList<state>)SGnMN).get(SGnMN.size()-1).getPCost();
+		float Pcost = ((LinkedList<state>)nMN).get(nMN.size()-1).getPCost();
+
+		//Now we start using the weighted energy and makespan
+		//times
+		if((PI*leafCost+PHI*leafPCost) <= (PI*cost+PHI*Pcost)){
 		    //DEBUG
 		    ;//System.out.println("Removing myself from the map");
 
@@ -1141,6 +1157,8 @@ public class biCriteriaScheduling {
 		    //First copy the cost from sm to snew
 		    for(float f : sm.getCost())
 			snew.setCost(f);
+		    //also copy the energy costs
+		    snew.setECost(sm.getECost());
 		    for(String type : sm.getTypes())
 			snew.setType(type);
 		    // adding join nodes strings from parents as long as
@@ -1167,6 +1185,12 @@ public class biCriteriaScheduling {
 			    }
 			}
 		    }
+		    //Also update the energy costs. Energy costs are
+		    //always added up there is no concept of energy
+		    //costs being max even if the actors are run in
+		    //parallel
+		    snew.updateTotalPCost(parent.getPCost());
+		    
 		    //This is a very expensive operation (50% of the
 		    //time is spent here -- jip profiler)
 		    snew.setAttr("cost",new GXLString(""+snew.getCurrentCost()));
@@ -1274,7 +1298,10 @@ public class biCriteriaScheduling {
     private static boolean boundPrune(LinkedList<state> nMN){
 	boolean ret = false;
 	if(BOUND <= 0) return false; //don't prune
-	else if(nMN.get(nMN.size()-1).getCurrentCost() > BOUND){
+	//now find the weighted cost
+	float cost = (nMN.get(nMN.size()-1).getCurrentCost()*PI)
+	    +(nMN.get(nMN.size()-1).getPCost()*PHI);
+	if(cost > BOUND){
 	    //DEBUG
 	    // System.out.println("pruning: "+nMN.get(nMN.size()-1).getID());
 	    ret = true;
@@ -1343,7 +1370,10 @@ public class biCriteriaScheduling {
 		    //find out, which one needs to be removed
 		    //the last one actually
 		    LinkedList<state> toR = (LinkedList<state>)ll.get(ll.size()-1);
-		    if(toR.get(toR.size()-1).getCurrentCost() > nMN.get(nMN.size()-1).getCurrentCost()){
+		    if(((toR.get(toR.size()-1).getCurrentCost()*PI)
+			+(toR.get(toR.size()-1).getPCost()*PHI)) > 
+		       ((nMN.get(nMN.size()-1).getCurrentCost()*PI)+(nMN.get(nMN.size()-1).getPCost()*PHI))
+		       ){
 			toR = (LinkedList<state>)ll.remove(ll.size()-1); //removed the last one
 			//add the new one into the list
 			ll.add(ll.size(),nMN);
@@ -1387,10 +1417,12 @@ public class biCriteriaScheduling {
 		    //we do not need to remove anything. Add the
 		    //Queue<state> in a sorted order
 		    
-		    float myCost = nMN.get(nMN.size()-1).getCurrentCost();
+		    float myCost = (nMN.get(nMN.size()-1).getCurrentCost()*PI)
+			+(PHI*nMN.get(nMN.size()-1).getPCost());
 		    int counter=0;
 		    for(Queue<state> tutu : ll){
-			if(myCost <= ((LinkedList<state>)tutu).get(tutu.size()-1).getCurrentCost()){
+			if(myCost <= ((PI*((LinkedList<state>)tutu).get(tutu.size()-1).getCurrentCost())
+				      +(((LinkedList<state>)tutu).get(tutu.size()-1).getPCost()*PHI))){
 			    ll.add(counter,nMN);
 			    break;
 			}

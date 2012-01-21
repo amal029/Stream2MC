@@ -19,6 +19,8 @@ public class state extends GXLNode{
     private String id = "";
     private ArrayList<Float> myCosts = new ArrayList<Float>();
     private float totalCost = 0f;
+    private float eCost = 0f;
+    private float totalPCost = 0f; //we will use this value
     private ArrayList<String> channel = new ArrayList<String>(2);
     private ArrayList<state> partner = null;
     private String partnerName = null;
@@ -31,6 +33,21 @@ public class state extends GXLNode{
     private boolean done = false;
     private ArrayList<state> parents = new ArrayList<state>();
     private int allocCounter = 0;
+    
+    public void setECost(float eCost){
+	this.eCost = eCost;
+    }
+    public float getPCost(){
+	return totalPCost;
+    }
+    
+    public void updateTotalPCost(float pCost){
+	this.totalPCost = pCost+this.eCost;
+    }
+    
+    public float getECost(){
+	return eCost;
+    }
     
     public void setNumJoinParents(int p){
 	pActors = p;

@@ -303,6 +303,23 @@ public class Actor extends GXLNode{
 
     private void bb(StringBuilder buf, String ID, String guards[], String [] updates, 
 			   CHOICE C, boolean terminalNode, String sendName,String id1, String id2){
+
+	//Adding the enery labels
+	if(getAttr("total_energy_x86")!=null){
+	    String energy = ((GXLString)getAttr("total_energy_x86").getValue()).getValue().split(";")[0];
+	    String energyW = ((GXLString)getAttr("energy_weights").getValue()).getValue().split(";")[0];
+	    String costW = ((GXLString)getAttr("exec_weights").getValue()).getValue().split(";")[0];
+	    buf.append("<label kind=\"energy\">"+energy+"</label>\n");
+	    buf.append("<label kind=\"energyW\">"+energyW+"</label>\n");
+	    buf.append("<label kind=\"costW\">"+costW+"</label>\n");
+	}
+	else{
+	    //This is the case with dummyStart and dummyEnd nodes or
+	    //other such nodes
+	    buf.append("<label kind=\"energy\">"+0+"</label>\n");
+	    buf.append("<label kind=\"energyW\">"+0+"</label>\n");
+	    buf.append("<label kind=\"costW\">"+0+"</label>\n");
+	}
 	
 	//Add the additional information that this is a joinNode
 	if(getIsMergeNode() && !getID().equals("dummyTerminalNode")){

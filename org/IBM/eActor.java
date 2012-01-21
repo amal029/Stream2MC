@@ -40,7 +40,7 @@ public class eActor extends Actor{
 		meCost=myCost[0];
 	    if(myEnergy.length == 1)
 		meEnergy=myEnergy[0];
-	    else if(myCost.length != p.size())
+	    else if(myCost.length != p.size() || myEnergy.length != p.size())
 		throw new RuntimeException("The total_time_x86 variable for node: "+getID()+" is not correctly defined");
 	}
 	for(int e=0;e<p.size();++e){
@@ -67,6 +67,11 @@ public class eActor extends Actor{
 	    if(getID().equals("dummyStartNode") || getID().equals("dummyTerminalNode"));
 	    else if(meCost!=null){
 		costLabels += meCost+";";
+	    }
+	    if(meEnergy != null){
+		// //DEBUG
+		// if(getID().equals("node9"))
+		//     System.out.println(meEnergy);
 		energyLabels += meEnergy+";";
 	    }
 	}
