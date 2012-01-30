@@ -31,7 +31,7 @@ public class biCriteriaScheduling {
     private static long sTime = 0;
     private static String fName = "";
     
-    private static float BOUND = 0;//the default bound
+    private static float BOUND = 7361156;//the default bound
     
     private static float PI = 1; //the default makespan weight
     private static float PHI = 0; //the default energy weight
@@ -57,6 +57,8 @@ public class biCriteriaScheduling {
 	//Make the root node in here
 	this.PI = PI;
 	this.PHI = PHI;
+	System.out.println("PI is: "+PI+" PHI is: "+PHI);
+
 	root = new state("rootNode");
 	fName = f.getName().replaceFirst("\\.xml","");
 	SG = new stateGraph("__stateGraph__"+fName,root);
@@ -273,7 +275,7 @@ public class biCriteriaScheduling {
 		
 		//calculating the minimum makespan
 		state terminal = null;
-		float makespan = -1f;
+		float makespan = -1f, energy=-1f;
 		Set<String> keys = SGHash.keySet();
 		Iterator<String> iter = keys.iterator();
 		while(iter.hasNext()){
@@ -287,12 +289,15 @@ public class biCriteriaScheduling {
 				terminal = dstate;
 				makespan = 
 				    new Float(((GXLString)dstate.getAttr("cost").getValue()).getValue()).floatValue();
+				energy = 
+				    new Float(((GXLString)dstate.getAttr("energy").getValue()).getValue()).floatValue();
 			    }
 			}
 			else{
 			    //For the very first time
 			    terminal = dstate;
 			    makespan = new Float(((GXLString)dstate.getAttr("cost").getValue()).getValue()).floatValue();
+			    energy = new Float(((GXLString)dstate.getAttr("energy").getValue()).getValue()).floatValue();
 			}
 		    }
 		}
@@ -303,6 +308,9 @@ public class biCriteriaScheduling {
 		clearVisited(root);
 		
 		System.out.println("Minimum optimal makespan: "+makespan);
+		System.out.println("Minimum optimal energy: "+energy);
+		System.out.println("Overall solution is: "+((PI*makespan)+(PHI*energy)));
+
 		System.out.println("Total time for BFS: "+fTime+" ms");
 		break;
 	    }
@@ -1194,6 +1202,7 @@ public class biCriteriaScheduling {
 		    //This is a very expensive operation (50% of the
 		    //time is spent here -- jip profiler)
 		    snew.setAttr("cost",new GXLString(""+snew.getCurrentCost()));
+		    snew.setAttr("energy",new GXLString(""+snew.getPCost()));
 		    
 		    //set the update guards high
 		}

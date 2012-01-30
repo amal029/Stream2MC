@@ -281,8 +281,8 @@ public class StreamITParser {
 	    this.weightF = new File(fileName.replaceFirst("gxl$","txt.weight"));
 	    try{
 		this.powerF = new File(fileName.replaceFirst("gxl$","txt.power.strong_arm"));
-		if(powerF == null)
-		    throw new FileNotFoundException();
+		BufferedReader brP = new 
+		BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(powerF))));
 	    }
 	    catch(FileNotFoundException e){
 		this.powerF = new File(fileName.replaceFirst("gxl$","txt.power.xscale_arm"));
@@ -292,6 +292,9 @@ public class StreamITParser {
 	    BufferedReader  br = new BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(f))));
 	    BufferedReader brP = new 
 		BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(powerF))));
+	    //DEBUG
+	    // System.out.println("weights: "+weightF);
+
 	    BufferedReader brW = new 
 		BufferedReader(new InputStreamReader(new DataInputStream(new FileInputStream(weightF))));
 	    br.readLine(); //First one is just wasted as such
@@ -311,6 +314,10 @@ public class StreamITParser {
 		map.put(strs[0].trim()+":total_energy_x86",
 			(fg.floatValue() * new Integer(strs[1]).intValue())+"");
 		if(strs2[0].trim().equals(strs[0].trim())){
+		    //DEBUG
+		    // System.out.println(strs2[0].trim()+" "+strs2[1]+" "+strs2[2]);
+		    // System.out.println("Weights are: "+strs2[1]);
+
 		    map.put(strs[0].trim()+":exec_weights",strs2[1]);
 		    map.put(strs[0].trim()+":energy_weights",strs2[2]);
 		}

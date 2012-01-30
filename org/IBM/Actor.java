@@ -307,8 +307,11 @@ public class Actor extends GXLNode{
 	//Adding the enery labels
 	if(getAttr("total_energy_x86")!=null){
 	    String energy = ((GXLString)getAttr("total_energy_x86").getValue()).getValue().split(";")[0];
-	    String energyW = ((GXLString)getAttr("energy_weights").getValue()).getValue().split(";")[0];
-	    String costW = ((GXLString)getAttr("exec_weights").getValue()).getValue().split(";")[0];
+	    String energyW = ((GXLString)getAttr("energy_weights").getValue()).getValue();
+	    String costW = ((GXLString)getAttr("exec_weights").getValue()).getValue();
+	    //DEBUG
+	    // System.out.println("Actor: "+this.getID()+" execW: "+energyW+" costW: "+costW);
+
 	    buf.append("<label kind=\"energy\">"+energy+"</label>\n");
 	    buf.append("<label kind=\"energyW\">"+energyW+"</label>\n");
 	    buf.append("<label kind=\"costW\">"+costW+"</label>\n");

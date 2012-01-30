@@ -844,8 +844,8 @@ public class ILPStageSimpleBiCriteriaScheduling implements compilerStage{
 	}
     }
     
-    private static float EXECWEIGHT = 0.65191f;
-    private static float ENERGYWEIGHT = 0.34808f;
+    private static float EXECWEIGHT = 0.5f;
+    private static float ENERGYWEIGHT = 0.5f;
 
     public String[] applyMethod(String args[],String fNames[]){
 	String rets[] = new String[args.length];

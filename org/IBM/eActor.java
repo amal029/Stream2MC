@@ -120,8 +120,9 @@ public class eActor extends Actor{
 	    if(getID().equals("dummyTerminalNode")) myCost="0";
 	    else if(getAttr("total_time_x86")==null && !getID().equals("dummyTerminalNode"))
 		throw new RuntimeException(getID()+" does not know how long it will take!!");
-	    else
+	    else{
 		myCost = myCosts[y];
+	    }
 		// myCost=((GXLString)getAttr("total_time_x86").getValue()).getValue();
 	    Actor.globalCostDeclBuild(buf,getID(),myCost); //Putting in the
 							//cost variable

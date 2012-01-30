@@ -130,13 +130,13 @@ ilpbi: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageBiCriteriaScheduling \
-	-DdivFactor=1 $(benchmark12)
+	-DdivFactor=1 $(mp3decoder)
 
 ilpbisim: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageSimpleBiCriteriaScheduling \
-	-DdivFactor=1 $(benchmark12)
+	-DdivFactor=1 $(beamformer)
 
 ilp2: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -158,4 +158,9 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(audiobeam)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(mp3decoder)
+
+real_time_lctes_2011: compile
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.heuristics.lib.realTimeBiCriteriaScheduling -DdivFactor=1 $(benchmark12)

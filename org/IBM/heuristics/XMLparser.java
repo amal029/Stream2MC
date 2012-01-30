@@ -242,14 +242,16 @@ public class XMLparser implements compilerStage {
 		    //Add to the map
 		    addToMap(s,map); //FIXME
 		}
-		else if(attr.getValue().equals("energy")){
-		    s.setECost(new Float(child.getTextTrim()).floatValue());
-		}
-		else if(attr.getValue().equals("energyW")){
-		    PHI = new Float(child.getTextTrim()).floatValue();
-		}
-		else if(attr.getValue().equals("costW")){
-		    PI = new Float(child.getTextTrim()).floatValue();
+		if(!s.getID().startsWith("dummy")){
+		    if(attr.getValue().equals("energy")){
+			s.setECost(new Float(child.getTextTrim()).floatValue());
+		    }
+		    else if(attr.getValue().equals("energyW")){
+			PHI = new Float(child.getTextTrim()).floatValue();
+		    }
+		    else if(attr.getValue().equals("costW")){
+			PI = new Float(child.getTextTrim()).floatValue();
+		    }
 		}
 	    }
 	}
