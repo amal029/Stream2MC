@@ -1316,6 +1316,11 @@ public class branhBound {
      TODO: 1.) Do the join nodes later on (check, if this will work)
      FIXME: sometimes we are removing paths, which lead to a deadlock
      (FIXED)
+
+     A parallel node and a sequential node should look (have the same
+     name) the same. That means that this algorithm should work
+     correctly.
+
      */
     private static boolean updateKLists(LinkedList<state> nMN, ArrayList<String> names,
 					String nMNGS){

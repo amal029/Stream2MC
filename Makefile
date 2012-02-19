@@ -25,6 +25,9 @@ mp3decoder=../benchmarks/new/mp3decoder.dot.gxl
 beamformer=../benchmarks/new/beamformer.dot.gxl
 audiobeam=../benchmarks/new/audiobeam.dot.gxl
 
+#Run files
+audiobeamR=$(audiobeam);./output/__final__audiobeam.dot.gxl.xml
+
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
 
@@ -47,6 +50,16 @@ benchmark54=../benchmarks/4core/serpent_full.dot.gxl #works with declustering an
 benchmark64=../benchmarks/4core/tde.dot.gxl #Works with declustering and uppaal
 benchmark74=../benchmarks/4core/des.dot.gxl # works with uppaal, work with declustering
 benchmark84=../benchmarks/4core/mpeg2decoder.dot.gxl # uppaal and declustering both work
+
+#8 core examples
+benchmark18=../benchmarks/8core/audiobeam.dot.gxl #works with both uppaal and declustering
+benchmark28=../benchmarks/8core/fft.dot.gxl #works with both uppaal and declustering
+benchmark38=../benchmarks/8core/bitonicsort.dot.gxl #works with declustering and uppaal
+benchmark48=../benchmarks/8core/vocoder.dot.gxl #Works with both uppaal and declustering
+benchmark58=../benchmarks/8core/serpent_full.dot.gxl #works with declustering and uppaal
+benchmark68=../benchmarks/8core/tde.dot.gxl #Works with declustering and uppaal
+benchmark78=../benchmarks/8core/des.dot.gxl # works with uppaal, work with declustering
+benchmark88=../benchmarks/8core/mpeg2decoder.dot.gxl # uppaal and declustering both work
 
 # CPLEX solution files
 solution12=/tmp/audiobeam.sol
@@ -118,30 +131,35 @@ main:
 
 declustering: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
-	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.declustering.declusterStage1 \
-	-DdivFactor=1 $(mp3decoder)
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.declustering.declusterStage1 -DdivFactor=1 $(benchmark58)
+
+critical_path:
+	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.heuristics.lib.criticalPathScheduling -DdivFactor=1 $(benchmark58)
 
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark12)
+	-DdivFactor=1 $(benchmark58)
 
 ilpbi: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageBiCriteriaScheduling \
-	-DdivFactor=1 $(mp3decoder)
+	-DdivFactor=1 $(benchmark32)
 
 ilpbisim: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.ILP.ILPStageSimpleBiCriteriaScheduling \
-	-DdivFactor=1 $(beamformer)
+	-DdivFactor=1 $(benchmark14)
 
-ilp2: compile
+ilp2: 
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage2 \
-	-DdivFactor=1 $(mp3decoder)
+	-DdivFactor=1 $(benchmark58)
 
 cplex: compile
 	$(CR) -cp $(CLASSPATH) org.IBM.ILP.cplexSolParser $(solution12)
@@ -158,9 +176,23 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(mp3decoder)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark58)
+
+bfs_heuristic_run: compile
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.heuristics.XMLparser -DdivFactor=1 $(beanchmark18)
 
 real_time_lctes_2011: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
-	org.IBM.heuristics.lib.realTimeBiCriteriaScheduling -DdivFactor=1 $(benchmark12)
+	org.IBM.heuristics.lib.realTimeBiCriteriaScheduling -DdivFactor=1 $(beamformer)
+
+pCarpenter:
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
+	org.IBM.heuristics.pCarpenter -DdivFactor=1 $(benchmark58)
+
+run: 
+	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
+	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark58)

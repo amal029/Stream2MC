@@ -27,8 +27,13 @@ public class XMLparser implements compilerStage {
 	    File dir = new File("./output");
 	    if(!dir.exists())
 		dir.mkdir();
+	    
+	    String ar[] = {args[0].split(";")[1]};
+    	    HashMap<String,streamGraph> graphs = new streamGraphParser().parse(ar);
+	    
 	    for(int e=0;e<args.length;++e){
-		File f = new File(args[e]);
+		File f = new File(args[e].split(";")[0]);
+    		streamGraph sGraph = graphs.get(args[e].split(";")[1]);
 		SAXBuilder builder = new SAXBuilder(); 
 		//DEBUG
 		// System.out.println(f);
@@ -76,8 +81,11 @@ public class XMLparser implements compilerStage {
 		/**Start breadth first search***/
 		System.out.println();
 		long time1 = System.currentTimeMillis();
+		System.out.println("Calling BFS search");
+
 		biCriteriaScheduling bfs = new biCriteriaScheduling(f,startingStates,time1,
-								    XMLparser.PI, XMLparser.PHI); //it starts on its own
+								    XMLparser.PI, XMLparser.PHI,
+								    sGraph); //it starts on its own
 		// BFS_K_restrictive bfs = new BFS_K_restrictive(f,startingStates,time1); //it starts on its own
 		// BFS bfs = new BFS(f,startingStates,time1); //it starts on its own
 	    }
