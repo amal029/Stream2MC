@@ -386,9 +386,6 @@ public final class listSchedule {
 	  getcActors((eActor)le.getSource(),sourcecActors);
 	}
 	else if(le.getSource() instanceof eActor && !((eActor)le.getSource()).getIsMergeNode())
-	  //FIXME: this exception is thrown when doing
-	  //listscheduling for criticalpath (bitonic-sort
-	  //benchmark)
 	  throw new RuntimeException(le.getSource().getID());
       }
     }

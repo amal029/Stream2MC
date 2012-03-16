@@ -18,6 +18,21 @@ import org.IBM.declustering.listSchedule;
 
 public class criticalPathScheduling implements compilerStage{
     
+  private static void removeParallelEdges(streamGraph sGraph){
+    Stack<GXLEdge> toRemove = new Stack<GXLEdge>();
+    for(int e=0;e<sGraph.getGraphElementCount();++e){
+      if(sGraph.getGraphElementAt(e) instanceof GXLEdge){
+	if(((GXLEdge)sGraph.getGraphElementAt(e)).getAttr("parallelEdge") != null){
+	  toRemove.push((GXLEdge)sGraph.getGraphElementAt(e));
+	}
+      }
+    }
+    while(!toRemove.empty()){
+      GXLEdge temp = toRemove.pop();
+      sGraph.remove(temp);
+      temp.remove(sGraph);
+    }
+  }
     private static long getVal(String [] temp){
 	long ret = 0;
 	long val = 0;
@@ -91,6 +106,7 @@ public class criticalPathScheduling implements compilerStage{
 	    ArrayList<GXLNode> processors = (ArrayList<GXLNode>)list.get(0);
 	    for(int e=0;e<args.length;++e){
     		streamGraph sGraph = graphs.get(args[e]);
+		removeParallelEdges(sGraph);
 		
 		long time = System.nanoTime();
 		//Get the nodes in the SDF graph put into the decreasing

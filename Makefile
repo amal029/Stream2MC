@@ -27,6 +27,8 @@ audiobeam=../benchmarks/new/audiobeam.dot.gxl
 
 #Run files
 audiobeamR=$(audiobeam);./output/__final__audiobeam.dot.gxl.xml
+fftR=./output/__final__fft.dot.gxl.xml;./output/__stage4__fft.dot.gxl
+latticeR=./output/__final__lattice.dot.gxl.xml;./output/__stage4__lattice.dot.gxl
 
 #This takes too long to compile
 # COMPILE_FILES=../work-after-partition.gxl
@@ -75,6 +77,7 @@ arch:
 
 arch2:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
+	gxl2dot pArch.gxl > pArch$(HN).dot
 
 arch8:
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createPArch amal029@localhost amal029@infinity amal029@infinity2 amal029@infinity3 -clf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini -nlf /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini /home/amal029/Dropbox/IBM_Work/Data/pthreads_mutexes/B2.ini
@@ -129,10 +132,10 @@ main:
 	rm -f stream2mc
 	gcc -std=gnu99 -g -o stream2mc main.c
 
-declustering: compile
+declustering: 
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
-	org.IBM.declustering.declusterStage1 -DdivFactor=1 $(benchmark58)
+	org.IBM.declustering.declusterStage1 -DdivFactor=1 $(mp3decoder)
 
 critical_path:
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -142,7 +145,7 @@ critical_path:
 ilp: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.ILP.ILPStage1 \
-	-DdivFactor=1 $(benchmark58)
+	-DdivFactor=1 $(lattice)
 
 ilpbi: compile
 	$(CR) -cp $(CLASSPATH) org/IBM/createMcModel \
@@ -176,21 +179,21 @@ bfs: compile
 bfs_heuristic: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,org.IBM.compilerStage4,\
-	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark58)
+	org.IBM.heuristics.XMLparser -DdivFactor=1 $(benchmark18)
 
-bfs_heuristic_run: compile
+bfs_heuristic_run: 
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
-	-DstageFiles=org.IBM.heuristics.XMLparser -DdivFactor=1 $(beanchmark18)
+	-DstageFiles=org.IBM.heuristics.XMLparser -DdivFactor=1 "$(latticeR)"
 
 real_time_lctes_2011: compile
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
 	org.IBM.heuristics.lib.realTimeBiCriteriaScheduling -DdivFactor=1 $(beamformer)
 
-pCarpenter:
+pCarpenter: 
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \
 	-DstageFiles=org.IBM.compilerStage1,org.IBM.compilerStage2,org.IBM.compilerStage3,\
-	org.IBM.heuristics.pCarpenter -DdivFactor=1 $(benchmark58)
+	org.IBM.heuristics.pCarpenter -DdivFactor=1 $(mp3decoder)
 
 run: 
 	$(CR) -cp .:$(CLASSPATH) org/IBM/createMcModel \

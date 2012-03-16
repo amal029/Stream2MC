@@ -10,7 +10,7 @@ import java.io.*;
 import java.util.*;
 import org.xml.sax.*;
 
-public class state extends GXLNode{
+public class state extends GXLNode implements Cloneable{
     
     private boolean isJoinNode = false;
     private int pActors = 0;

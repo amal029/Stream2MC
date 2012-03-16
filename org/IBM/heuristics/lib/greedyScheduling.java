@@ -46,7 +46,7 @@ public class greedyScheduling implements compilerStage{
 	    if(sNode.iseActor()){
 		execTime = ((GXLString)sNode.getAttr("total_time_x86").getValue()).getValue().split(";");
 		EACTORS += 1;
-	    }
+		}
 	    else
 		execTime = ((GXLString)sNode.getAttr("work_x86").getValue()).getValue().split(";");
 	    
@@ -63,7 +63,7 @@ public class greedyScheduling implements compilerStage{
 	    float sumDiffTimes = 0;
 	    for(int i=0;i<execTime.length;++i)
 		sumDiffTimes += ((Float.valueOf(execTime[i])-avgTime)*
-				 (Float.valueOf(execTime[i])-avgTime));
+		    (Float.valueOf(execTime[i])-avgTime));
 	    //DEBUG
 	    // System.out.println("sNode: "+sNode.getID()+" sumDiffTimes: "+sumDiffTimes);
 	    if(avgTime == 0)
@@ -75,7 +75,7 @@ public class greedyScheduling implements compilerStage{
 	    // 		       +((GXLString)sNode.getAttr("variance").getValue()).getValue());
 
 	    hSet.add(sNode);
-	}
+	    }
 	sNode.setVisited(true);
 
 	for(int e=0;e<sNode.getConnectionCount();++e){
@@ -84,11 +84,11 @@ public class greedyScheduling implements compilerStage{
 		if(le.getAttr("parallelEdge")==null){
 		    Actor node = (Actor)le.getTarget();
 		    getHSet(node,hSet);
+		    }
 		}
 	    }
-	}
 	
-    }
+	}
     
     private void getAllocation(TreeList<Actor> hSet){
 	
@@ -98,7 +98,7 @@ public class greedyScheduling implements compilerStage{
 	    Actor act = iter.next();
 	    if(act.iseActor())
 		numP = ((GXLString)act.getAttr("total_time_x86").getValue()).getValue().split(";").length;
-	}
+	    }
 	//DEBUG
 	// System.out.println("numP: "+numP);
 
@@ -110,7 +110,7 @@ public class greedyScheduling implements compilerStage{
 	   computation actors have been assigned. Once computation
 	   actors are assigned, then communication actors are forced are
 	   constrained to a single allocation.
-	 */
+	*/
 	//The algorithm -- we only assign the eActors from hSet
 	
 	//First get all the computation actors from hSet into a
@@ -126,14 +126,14 @@ public class greedyScheduling implements compilerStage{
 	    // System.out.println("act is: "+act.getID());
 	    if(act.iseActor()){
 		eList.push((eActor)act);
+		}
 	    }
-	}
 	
 	ArrayList<processor> pList = new ArrayList<processor>(numP);
 	//Initialize the processors
 	for(int i=0;i<numP;++i){
 	    pList.add(new processor(i));
-	}
+	    }
 	
 	//DEBUG
 	// System.out.println(eList.size());
@@ -152,7 +152,7 @@ public class greedyScheduling implements compilerStage{
 	    for(String s : Energy){
 		float temp = Float.valueOf(s);
 		energySet.add(temp);
-	    }
+		}
 	    
 	    //DEBUG
 	    // System.out.println("energySet size: "+energySet.size());
@@ -176,28 +176,28 @@ public class greedyScheduling implements compilerStage{
 		    //DEBUG
 		    // System.out.println("Allocated node: "+act.getID()+" on processor: "+index);
 		    break;
+		    }
 		}
 	    }
-	}
 	
 	//Calculate the total energy consumption
 	/**
 	   FIXME: The communication energy consumption is not taken into
 	   account
-	 */
+	*/
 	float deadline = 0;
 	for(processor p : pList){
 	    ENERGY += p.getEnergyTimeOfAllocActors();
 	    deadline += p.getExecTimeOfAllocActors();
-	}
+	    }
 	System.out.println("My makespan is: "+deadline);
 	if(deadline > DEADLINE){
 	    float error = ((deadline-DEADLINE)/DEADLINE)*100;
 	    System.err.println("Error from optimal(%): "+error);
 
-	}
+	    }
 	
-    }
+	}
     
     private static boolean meetsDeadLine(processor p, ArrayList<processor> pList, float val){
 	
@@ -210,9 +210,9 @@ public class greedyScheduling implements compilerStage{
 	    //DEADLINE
 	    /** FIXME*/
 	    return true;
-	}
+	    }
 	
-    }
+	}
     
     private static int getProcessor(String Energy[], float val, ArrayList<Integer> done){
 	int ret=-1;
@@ -221,12 +221,12 @@ public class greedyScheduling implements compilerStage{
 		ret = i;
 		for(int y : done){
 		    if(y == i) {ret = -1; break;}
-		}
+		    }
 		if(ret != -1) break;
+		}
 	    }
-	}
 	return ret;
-    }
+	}
     
     public String[] applyMethod(String args[],String fNames[]){
 	String rets[] = new String[args.length];
@@ -266,13 +266,13 @@ public class greedyScheduling implements compilerStage{
 		//This is writing the GXL file after processing
 		sGraph.getDocument().write(new File("./output","__real_time_bicriteria__"+f.getName()));
 		rets[e] = "./output/__ilpbicriteria__"+f.getName();
+		}
 	    }
-    	}
     	catch(SAXException se){se.printStackTrace();}
     	catch(IOException e){e.printStackTrace();}
     	catch(Exception e){e.printStackTrace();}
 	return rets;
-    }
+	}
 
     private static void clearVisited(Actor sNode){
 	sNode.setVisited(false);
@@ -282,10 +282,10 @@ public class greedyScheduling implements compilerStage{
 		if(le.getAttr("parallelEdge")==null){
 		    Actor node = (Actor)le.getTarget();
 		    clearVisited(node);
+		    }
 		}
 	    }
 	}
-    }
 
     private class ComparatorE implements Comparator<Float>{
 	
@@ -293,8 +293,8 @@ public class greedyScheduling implements compilerStage{
 	    if(one > two) return 1;
 	    else if(one < two) return -1;
 	    else return 0;
+	    }
 	}
-    }
     private class ComparatorH implements Comparator<Actor>{
 	
 	public int compare(Actor one, Actor two){
@@ -303,8 +303,8 @@ public class greedyScheduling implements compilerStage{
 	    if(var1 > var2) return 1;
 	    else if(var1 < var2) return -1;
 	    else return 0;
+	    }
 	}
-    }
 
     private class processor {
 	
@@ -313,30 +313,30 @@ public class greedyScheduling implements compilerStage{
 	private int myIndex = -1;
 	public processor(int index){
 	    this.myIndex = index; //which processor am I?
-	}
+	    }
 	
 	public void seteActor(eActor actor){
 	    list.add(actor);
-	}
+	    }
 	
 	public float getExecTimeOfAllocActors(){
 	    float execTime = 0;
 	    for(eActor a : list){
 		execTime += 
 		    Float.valueOf(((GXLString)a.getAttr("total_time_x86").getValue()).getValue().split(";")[myIndex]);
-	    }
+		}
 	    return execTime;
-	}
+	    }
 	
 	public float getEnergyTimeOfAllocActors(){
 	    float execTime = 0;
 	    for(eActor a : list){
 		execTime += 
 		    Float.valueOf(((GXLString)a.getAttr("total_energy_x86").getValue()).getValue().split(";")[myIndex]);
-	    }
+		}
 	    return execTime;
+	    }
 	}
-    }
     
     //Not an optimized sorted list
     //Neither is it complete, i.e., for general usage.
@@ -346,7 +346,7 @@ public class greedyScheduling implements compilerStage{
 	private Comparator<T> comp = null;
 	public TreeList(Comparator<T> val){
 	    this.comp = val;
-	}
+	    }
 	
 	public void add(T val){
 	    for(int i =list.size()-1;i>=0;--i){
@@ -354,30 +354,30 @@ public class greedyScheduling implements compilerStage{
 		if(ret >= 0){
 		    list.add(i+1,val);
 		    break;
+		    }
 		}
-	    }
 	    if(list.isEmpty())
 		list.add(val);
-	}
+	    }
 	
 	public T pollFirst(){
 	    return list.remove(0);
-	}
+	    }
 	
 	public Iterator<T> iterator(){
 	    return list.iterator();
-	}
+	    }
 	
 	public boolean isEmpty(){
 	    return list.isEmpty();
-	}
+	    }
 	
 	public int size(){
 	    return list.size();
-	}
+	    }
 	
-    }
+	}
     
-}
+    }
 
 

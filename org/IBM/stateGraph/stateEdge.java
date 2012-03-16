@@ -15,4 +15,8 @@ public class stateEdge extends GXLEdge{
 	super(first.getID(),second.getID());
 	this.setDirected(true);
     }
+    public stateEdge (String first, String second) {
+	super(first,second);
+	this.setDirected(true);
+    }
 }
