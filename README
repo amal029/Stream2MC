@@ -1,0 +1,10 @@
+This library implements a number of techniques to extract data and task
+parallelism form stream graphs for heterogeneous multi-processor
+systems. 
+
+
+The library includes support for producing ILP to be solved by a solver
+such as CPLEX, or produce timed automata to be checked using Uppaal. 
+There are also a number of state-space search heuristics that perform
+better than optimal solutions, when considering runtime. But, they also
+give comparable solutions.
